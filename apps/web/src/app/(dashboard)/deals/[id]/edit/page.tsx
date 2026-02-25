@@ -28,7 +28,7 @@ interface DealData {
 
 export default function EditDealPage() {
   const params = useParams();
-  const dealId = params.id as string;
+  const dealId = params?.id as string;
   const supabase = createSupabaseBrowserClient();
   const [deal, setDeal] = useState<DealData | null>(null);
   const [loading, setLoading] = useState(true);

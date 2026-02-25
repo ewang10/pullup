@@ -122,7 +122,7 @@ export default function DashboardPage() {
             .eq('status', 'completed');
 
           revenue = (completedClaims || []).reduce((sum, c) => {
-            const deal = c.deal as Record<string, number> | null;
+            const deal = c.deal as unknown as Record<string, number> | null;
             if (!deal) return sum;
             return sum + (deal.ride_credit_amount || 0) + (deal.driver_kickback_amount || 0) + (deal.platform_fee_amount || 0);
           }, 0);
@@ -160,7 +160,7 @@ export default function DashboardPage() {
             const existing = dailyMap.get(day) || { visits: 0, revenue: 0 };
             existing.visits += 1;
             if (claim.status === 'completed') {
-              const deal = claim.deal as Record<string, number> | null;
+              const deal = claim.deal as unknown as Record<string, number> | null;
               if (deal) {
                 existing.revenue += (deal.ride_credit_amount || 0) + (deal.driver_kickback_amount || 0) + (deal.platform_fee_amount || 0);
               }

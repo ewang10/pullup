@@ -10,12 +10,12 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createSupabaseBrowserClient } from '@/lib/supabase-client';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createSupabaseBrowserClient();
@@ -26,7 +26,7 @@ export default function LoginPage() {
 
   // Surface the unauthorized error set by middleware redirect
   useEffect(() => {
-    if (searchParams.get('error') === 'unauthorized') {
+    if (searchParams?.get('error') === 'unauthorized') {
       setError('This dashboard is for venue administrators only.');
     }
   }, [searchParams]);
@@ -129,5 +129,17 @@ export default function LoginPage() {
         </Link>
       </p>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center h-32">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }

@@ -231,20 +231,29 @@ export default function DealForm({ initialData, venueId, mode }: DealFormProps) 
         </div>
       </div>
 
-      <div>
-        <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
-          Status
+      <div className="flex items-center gap-3">
+        <label htmlFor="is_active" className="text-sm font-medium text-gray-700">
+          Active
         </label>
-        <select
-          id="status"
-          value={formData.status}
-          onChange={(e) => updateField('status', e.target.value)}
-          className="input-field"
+        <button
+          type="button"
+          id="is_active"
+          role="switch"
+          aria-checked={formData.is_active}
+          onClick={() => setFormData((prev) => ({ ...prev, is_active: !prev.is_active }))}
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+            formData.is_active ? 'bg-primary' : 'bg-gray-300'
+          }`}
         >
-          <option value="active">Active</option>
-          <option value="paused">Paused</option>
-          <option value="draft">Draft</option>
-        </select>
+          <span
+            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+              formData.is_active ? 'translate-x-6' : 'translate-x-1'
+            }`}
+          />
+        </button>
+        <span className="text-sm text-gray-500">
+          {formData.is_active ? 'Deal is visible and claimable' : 'Deal is hidden'}
+        </span>
       </div>
 
       <div className="flex gap-3 pt-4">

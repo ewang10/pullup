@@ -97,7 +97,7 @@ export default function AnalyticsPage() {
 
           if (claim.status === 'completed') {
             existing.completed += 1;
-            const deal = claim.deal as Record<string, number> | null;
+            const deal = claim.deal as unknown as Record<string, number> | null;
             const rev = deal
               ? (deal.ride_credit_amount || 0) + (deal.driver_kickback_amount || 0) + (deal.platform_fee_amount || 0)
               : 0;

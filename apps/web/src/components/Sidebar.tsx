@@ -68,7 +68,7 @@ const navItems = [
 ];
 
 export default function Sidebar() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? '';
   const router = useRouter();
   const supabase = createSupabaseBrowserClient();
 
