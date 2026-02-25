@@ -1,0 +1,72 @@
+{
+  "expo": {
+    "name": "PullUp",
+    "slug": "pullup",
+    "scheme": "pullup",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#6C63FF"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.pullup.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "PullUp needs camera access to scan QR codes at venues.",
+        "NSLocationWhenInUseUsageDescription": "PullUp needs your location to show nearby deals.",
+        "NSPhotoLibraryUsageDescription": "PullUp needs photo access to upload receipts."
+      },
+      "config": {
+        "googleMapsApiKey": "YOUR_GOOGLE_MAPS_IOS_API_KEY"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#6C63FF"
+      },
+      "package": "com.pullup.app",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.READ_EXTERNAL_STORAGE"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "YOUR_GOOGLE_MAPS_ANDROID_API_KEY"
+        }
+      }
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "PullUp needs camera access to scan QR codes at venues."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "PullUp needs your location to show nearby deals."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "PullUp needs photo access to upload receipts."
+        }
+      ],
+      "expo-secure-store"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
