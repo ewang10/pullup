@@ -20,7 +20,9 @@ import React, {
 } from "react";
 import { Session, User as SupabaseUser } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
-import type { User, UserRole } from "@pullup/shared";
+import type { User, UserRole, DriverProfile } from "@pullup/shared";
+
+export type { UserRole };
 
 /**
  * Backward-compatible alias for the shared `User` type.
@@ -38,6 +40,8 @@ interface AuthContextValue {
   user: SupabaseUser | null;
   /** Row from the `users` table for the signed-in user, or null. */
   profile: UserProfile | null;
+  /** Driver profile (referral code, earnings) if the user is a driver, or null. */
+  driverProfile: DriverProfile | null;
   /** Shortcut for `profile.role`, or null when no profile is loaded. */
   role: UserRole | null;
   /** True while the initial session is being restored on app launch. */
@@ -69,6 +73,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [driverProfile, setDriverProfile] = useState<DriverProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   /**
@@ -86,7 +91,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error("Error loading profile:", error.message);
         return;
       }
-      setProfile(data as UserProfile);
+      const userProfile = data as UserProfile;
+      setProfile(userProfile);
+
+      // If the user is a driver, also fetch their driver profile
+      if (userProfile.role === "driver") {
+        const { data: dp } = await supabase
+          .from("driver_profiles")
+          .select("*")
+          .eq("user_id", userId)
+          .single();
+        setDriverProfile(dp as DriverProfile | null);
+      } else {
+        setDriverProfile(null);
+      }
     } catch (err) {
       console.error("Failed to load profile:", err);
     }
@@ -110,6 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loadProfile(s.user.id);
       } else {
         setProfile(null);
+        setDriverProfile(null);
       }
     });
 
@@ -156,6 +175,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     await supabase.auth.signOut();
     setProfile(null);
+    setDriverProfile(null);
   };
 
   /** Re-fetch the profile from the database. */
@@ -171,6 +191,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         session,
         user: session?.user ?? null,
         profile,
+        driverProfile,
         role: profile?.role ?? null,
         isLoading,
         signIn,

@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
-import { useAppStore, type DriverStats } from "../../lib/store";
+import { useAppStore } from "../../lib/store";
 import { fetchDriverStats } from "../../lib/api";
 
 function StatCard({
@@ -59,7 +59,7 @@ export default function EarningsScreen() {
   const stats = driverStats ?? {
     total_referrals: 0,
     total_earnings: 0,
-    pending_earnings: 0,
+    payout_balance: 0,
     completed_claims: 0,
   };
 
@@ -90,7 +90,7 @@ export default function EarningsScreen() {
         <View style={styles.pendingRow}>
           <View style={styles.pendingDot} />
           <Text style={styles.pendingText}>
-            ${stats.pending_earnings.toFixed(2)} pending
+            ${stats.payout_balance.toFixed(2)} pending
           </Text>
         </View>
       </View>

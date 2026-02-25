@@ -4,7 +4,7 @@ import { useAuth } from "../../lib/auth";
 import { useAppStore } from "../../lib/store";
 
 export default function ProfileScreen() {
-  const { user, profile, role, signOut } = useAuth();
+  const { user, profile, driverProfile, role, signOut } = useAuth();
   const reset = useAppStore((s) => s.reset);
 
   const handleSignOut = () => {
@@ -69,11 +69,11 @@ export default function ProfileScreen() {
             </Text>
           </View>
 
-          {profile?.referral_code && (
+          {driverProfile?.referral_code && (
             <View style={styles.menuItem}>
               <Text style={styles.menuLabel}>Referral Code</Text>
               <Text style={styles.menuValueHighlight}>
-                {profile.referral_code}
+                {driverProfile.referral_code}
               </Text>
             </View>
           )}
@@ -93,17 +93,17 @@ export default function ProfileScreen() {
 
           <Pressable style={styles.menuButton}>
             <Text style={styles.menuLabel}>Notifications</Text>
-            <Text style={styles.menuChevron}>></Text>
+            <Text style={styles.menuChevron}>&gt;</Text>
           </Pressable>
 
           <Pressable style={styles.menuButton}>
             <Text style={styles.menuLabel}>Privacy</Text>
-            <Text style={styles.menuChevron}>></Text>
+            <Text style={styles.menuChevron}>&gt;</Text>
           </Pressable>
 
           <Pressable style={styles.menuButton}>
             <Text style={styles.menuLabel}>Help & Support</Text>
-            <Text style={styles.menuChevron}>></Text>
+            <Text style={styles.menuChevron}>&gt;</Text>
           </Pressable>
         </View>
 

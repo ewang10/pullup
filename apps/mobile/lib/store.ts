@@ -14,6 +14,8 @@ import type {
   DriverStats,
 } from "@pullup/shared";
 
+export type { DriverStats };
+
 /** Simple latitude / longitude pair used for geolocation. */
 export interface LocationCoords {
   latitude: number;

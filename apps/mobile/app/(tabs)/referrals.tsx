@@ -21,7 +21,7 @@ interface Referral {
 }
 
 export default function ReferralsScreen() {
-  const { profile } = useAuth();
+  const { driverProfile } = useAuth();
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,11 +43,11 @@ export default function ReferralsScreen() {
   }, []);
 
   const handleShare = async () => {
-    if (!profile?.referral_code) return;
+    if (!driverProfile?.referral_code) return;
 
     try {
       await Share.share({
-        message: `Join PullUp and get exclusive local deals! Use my referral code: ${profile.referral_code}\n\nDownload: https://pullup.app/download`,
+        message: `Join PullUp and get exclusive local deals! Use my referral code: ${driverProfile.referral_code}\n\nDownload: https://pullup.app/download`,
       });
     } catch {
       // User cancelled share
@@ -67,7 +67,7 @@ export default function ReferralsScreen() {
       <View style={styles.codeCard}>
         <Text style={styles.codeLabel}>Your Referral Code</Text>
         <Text style={styles.codeValue}>
-          {profile?.referral_code ?? "---"}
+          {driverProfile?.referral_code ?? "---"}
         </Text>
         <Text style={styles.codeHint}>
           Share this code with riders to earn commissions on their claims.

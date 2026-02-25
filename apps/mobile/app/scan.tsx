@@ -217,7 +217,7 @@ export default function ScanScreen() {
         <View style={styles.resultOverlay}>
           <View style={styles.resultCard}>
             <View style={styles.successIcon}>
-              <Text style={styles.successIconText}>{'checkmark' && '\u2713'}</Text>
+              <Text style={styles.successIconText}>{'\u2713'}</Text>
             </View>
             <Text style={styles.resultTitle}>Verified!</Text>
             <Text style={styles.resultMessage}>

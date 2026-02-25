@@ -9,8 +9,9 @@ import {
   RefreshControl,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { useAppStore, type Claim } from "../../lib/store";
+import { useAppStore } from "../../lib/store";
 import { fetchMyClaims } from "../../lib/api";
+import type { DealClaimWithDeal } from "@pullup/shared";
 
 function useCountdown(expiresAt: string) {
   const [timeLeft, setTimeLeft] = useState("");
@@ -51,14 +52,14 @@ function ClaimCard({
   claim,
   onPress,
 }: {
-  claim: Claim;
+  claim: DealClaimWithDeal;
   onPress: () => void;
 }) {
   const countdown = useCountdown(claim.expires_at);
-  const isActive = claim.status === "active";
+  const isReserved = claim.status === "reserved";
 
   const statusColors: Record<string, { bg: string; text: string }> = {
-    active: { bg: "#ECFDF5", text: "#059669" },
+    reserved: { bg: "#ECFDF5", text: "#059669" },
     completed: { bg: "#F0EFFF", text: "#6C63FF" },
     expired: { bg: "#FEF2F2", text: "#DC2626" },
     cancelled: { bg: "#F3F4F6", text: "#6B7280" },
@@ -74,18 +75,18 @@ function ClaimCard({
             {claim.status.charAt(0).toUpperCase() + claim.status.slice(1)}
           </Text>
         </View>
-        {isActive && (
+        {isReserved && (
           <Text style={styles.countdown}>{countdown}</Text>
         )}
       </View>
 
-      <Text style={styles.dealTitle}>{claim.deal_title}</Text>
-      <Text style={styles.venueName}>{claim.venue_name}</Text>
+      <Text style={styles.dealTitle}>{claim.deal.title}</Text>
+      <Text style={styles.venueName}>{claim.deal.venue.name}</Text>
       <Text style={styles.venueAddress} numberOfLines={1}>
-        {claim.venue_address}
+        {claim.deal.venue.address}
       </Text>
 
-      {isActive && (
+      {isReserved && (
         <View style={styles.actionRow}>
           <Text style={styles.actionText}>Tap to redeem</Text>
         </View>
@@ -119,8 +120,8 @@ export default function ClaimsScreen() {
     loadClaims();
   }, []);
 
-  const activeClaims = claims.filter((c) => c.status === "active");
-  const pastClaims = claims.filter((c) => c.status !== "active");
+  const activeClaims = claims.filter((c) => c.status === "reserved");
+  const pastClaims = claims.filter((c) => c.status !== "reserved");
 
   const renderEmpty = () => {
     if (claimsLoading) return null;
