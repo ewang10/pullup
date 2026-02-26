@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createSupabaseBrowserClient } from '@/lib/supabase-client';
-import { VENUE_CATEGORIES } from '@pullup/shared';
+import { VENUE_CATEGORIES, US_STATES } from '@pullup/shared';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -74,7 +74,8 @@ export default function SignupPage() {
         });
 
         if (venueError) {
-          setError('Account created but venue setup failed. Please contact support.');
+          console.error('Venue setup error:', venueError);
+          setError(`Account created but venue setup failed: ${venueError.message}`);
           return;
         }
       }
@@ -209,15 +210,18 @@ export default function SignupPage() {
             <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-1">
               State
             </label>
-            <input
+            <select
               id="state"
-              type="text"
               value={formData.state}
               onChange={(e) => updateField('state', e.target.value)}
               className="input-field"
-              placeholder="State"
               required
-            />
+            >
+              <option value="">Select</option>
+              {US_STATES.map((st) => (
+                <option key={st} value={st}>{st}</option>
+              ))}
+            </select>
           </div>
         </div>
 

@@ -9,6 +9,7 @@
 
 import { useEffect, useState } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase-client';
+import { US_STATES } from '@pullup/shared';
 
 interface VenueProfile {
   id: string;
@@ -111,7 +112,7 @@ export default function SettingsPage() {
     if (!user?.email) return;
 
     const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-      redirectTo: `${window.location.origin}/settings`,
+      redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent('/reset-password?mode=recovery')}`,
     });
 
     if (error) {
@@ -198,15 +199,17 @@ export default function SettingsPage() {
               <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-1">
                 State
               </label>
-              <input
+              <select
                 id="state"
-                type="text"
                 value={profile.state}
                 onChange={(e) => updateField('state', e.target.value)}
                 className="input-field"
-                placeholder="CA"
-                maxLength={2}
-              />
+              >
+                <option value="">Select</option>
+                {US_STATES.map((st) => (
+                  <option key={st} value={st}>{st}</option>
+                ))}
+              </select>
             </div>
           </div>
 

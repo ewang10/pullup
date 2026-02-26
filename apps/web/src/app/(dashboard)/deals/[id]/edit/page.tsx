@@ -1,9 +1,3 @@
-/**
- * Edit deal page for venue administrators.
- *
- * Fetches an existing deal by ID and renders the DealForm in edit mode.
- * Uses correct column names (ride_credit_amount, fixed_amount, is_active).
- */
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -65,6 +59,10 @@ export default function EditDealPage() {
     );
   }
 
+  // Reverse-calculate the total cost per claim from the stored split amounts
+  const cost_per_claim =
+    deal.ride_credit_amount + deal.driver_kickback_amount + deal.platform_fee_amount;
+
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Edit Deal</h1>
@@ -72,7 +70,17 @@ export default function EditDealPage() {
         <DealForm
           venueId={deal.venue_id}
           mode="edit"
-          initialData={deal}
+          initialData={{
+            id: deal.id,
+            title: deal.title,
+            description: deal.description,
+            discount_type: deal.discount_type,
+            discount_value: deal.discount_value,
+            cost_per_claim,
+            daily_cap: deal.daily_cap,
+            hold_duration_minutes: deal.hold_duration_minutes,
+            is_active: deal.is_active,
+          }}
         />
       </div>
     </div>

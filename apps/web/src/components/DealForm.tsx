@@ -3,15 +3,20 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createSupabaseBrowserClient } from '@/lib/supabase-client';
+import {
+  CLAIM_COST_MIN,
+  SPLIT_RIDE_CREDIT,
+  SPLIT_DRIVER_KICKBACK,
+  SPLIT_PLATFORM_FEE,
+  calculateClaimCosts,
+} from '@pullup/shared';
 
 interface DealFormData {
   title: string;
   description: string;
   discount_type: 'percentage' | 'fixed_amount';
   discount_value: number;
-  ride_credit_amount: number;
-  driver_kickback_amount: number;
-  platform_fee_amount: number;
+  cost_per_claim: number;
   daily_cap: number;
   hold_duration_minutes: number;
   is_active: boolean;
@@ -28,9 +33,7 @@ const defaultFormData: DealFormData = {
   description: '',
   discount_type: 'percentage',
   discount_value: 10,
-  ride_credit_amount: 5,
-  driver_kickback_amount: 2,
-  platform_fee_amount: 1,
+  cost_per_claim: 10,
   daily_cap: 50,
   hold_duration_minutes: 120,
   is_active: true,
@@ -50,14 +53,27 @@ export default function DealForm({ initialData, venueId, mode }: DealFormProps) 
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  // Live preview of the cost breakdown
+  const breakdown = calculateClaimCosts(formData.cost_per_claim);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    if (formData.cost_per_claim < CLAIM_COST_MIN) {
+      setError(`Cost per claim must be at least $${CLAIM_COST_MIN.toFixed(2)}.`);
+      return;
+    }
+
     setLoading(true);
 
     try {
+      const { cost_per_claim, ...rest } = formData;
+      const costs = calculateClaimCosts(cost_per_claim);
+
       const payload = {
-        ...formData,
+        ...rest,
+        ...costs,
         venue_id: venueId,
       };
 
@@ -151,51 +167,42 @@ export default function DealForm({ initialData, venueId, mode }: DealFormProps) 
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
-        <div>
-          <label htmlFor="ride_credit_amount" className="block text-sm font-medium text-gray-700 mb-1">
-            Ride credit ($)
-          </label>
-          <input
-            id="ride_credit_amount"
-            type="number"
-            min={0}
-            step={0.01}
-            value={formData.ride_credit_amount}
-            onChange={(e) => updateField('ride_credit_amount', parseFloat(e.target.value))}
-            className="input-field"
-            required
-          />
-        </div>
-        <div>
-          <label htmlFor="driver_kickback_amount" className="block text-sm font-medium text-gray-700 mb-1">
-            Driver kickback ($)
-          </label>
-          <input
-            id="driver_kickback_amount"
-            type="number"
-            min={0}
-            step={0.01}
-            value={formData.driver_kickback_amount}
-            onChange={(e) => updateField('driver_kickback_amount', parseFloat(e.target.value))}
-            className="input-field"
-            required
-          />
-        </div>
-        <div>
-          <label htmlFor="platform_fee_amount" className="block text-sm font-medium text-gray-700 mb-1">
-            Platform fee ($)
-          </label>
-          <input
-            id="platform_fee_amount"
-            type="number"
-            min={0}
-            step={0.01}
-            value={formData.platform_fee_amount}
-            onChange={(e) => updateField('platform_fee_amount', parseFloat(e.target.value))}
-            className="input-field"
-            required
-          />
+      <div>
+        <label htmlFor="cost_per_claim" className="block text-sm font-medium text-gray-700 mb-1">
+          Cost per claim ($)
+        </label>
+        <input
+          id="cost_per_claim"
+          type="number"
+          min={CLAIM_COST_MIN}
+          step={0.5}
+          value={formData.cost_per_claim}
+          onChange={(e) => updateField('cost_per_claim', parseFloat(e.target.value) || CLAIM_COST_MIN)}
+          className="input-field"
+          required
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          Minimum ${CLAIM_COST_MIN.toFixed(2)} per claim. This is what your venue pays for each completed claim.
+        </p>
+
+        <div className="mt-3 p-3 bg-gray-50 rounded-lg text-sm text-gray-600 space-y-1">
+          <p className="font-medium text-gray-700 mb-2">Cost breakdown per claim:</p>
+          <div className="flex justify-between">
+            <span>Rider ride credit ({(SPLIT_RIDE_CREDIT * 100).toFixed(0)}%)</span>
+            <span className="font-medium">${breakdown.ride_credit_amount.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Driver referral bonus ({(SPLIT_DRIVER_KICKBACK * 100).toFixed(0)}%)</span>
+            <span className="font-medium">${breakdown.driver_kickback_amount.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Platform fee ({(SPLIT_PLATFORM_FEE * 100).toFixed(0)}%)</span>
+            <span className="font-medium">${breakdown.platform_fee_amount.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between border-t border-gray-200 pt-1 mt-1 font-semibold text-gray-900">
+            <span>Total</span>
+            <span>${formData.cost_per_claim.toFixed(2)}</span>
+          </div>
         </div>
       </div>
 
