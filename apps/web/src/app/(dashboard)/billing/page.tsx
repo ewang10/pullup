@@ -45,17 +45,35 @@ export default function BillingPage() {
         .eq('owner_user_id', user.id)
         .single();
 
-      if (!venue) return;
+      if (!venue) {
+        setLoading(false);
+        return;
+      }
 
-      // Fetch transactions for this venue
+      // Transactions link to a venue through deal_claims -> deals; the per-party
+      // breakdown lives on the deal. RLS limits results to this admin's venue.
       const { data: txns } = await supabase
         .from('transactions')
-        .select('*')
-        .eq('venue_id', venue.id)
+        .select(
+          'id, status, created_at, stripe_payment_id, deal_claim:deal_claims!inner(deal:deals!inner(venue_id, ride_credit_amount, driver_kickback_amount, platform_fee_amount))'
+        )
+        .eq('type', 'venue_charge')
+        .eq('deal_claim.deal.venue_id', venue.id)
         .order('created_at', { ascending: false })
         .limit(50);
 
-      const txnList = (txns || []) as Transaction[];
+      const txnList: Transaction[] = (txns || []).map((t) => {
+        const deal = (t.deal_claim as unknown as { deal: Record<string, number> }).deal;
+        return {
+          id: t.id,
+          status: t.status,
+          created_at: t.created_at,
+          stripe_payment_intent_id: t.stripe_payment_id,
+          ride_credit_amount: Number(deal.ride_credit_amount) || 0,
+          driver_kickback_amount: Number(deal.driver_kickback_amount) || 0,
+          platform_fee_amount: Number(deal.platform_fee_amount) || 0,
+        };
+      });
       setTransactions(txnList);
 
       // Calculate totals from completed transactions

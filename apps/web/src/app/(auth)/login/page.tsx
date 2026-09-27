@@ -15,6 +15,11 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createSupabaseBrowserClient } from '@/lib/supabase-client';
 
+// Public portfolio demo credentials. Set only on the demo deployment; the
+// banner is hidden when either is missing.
+const DEMO_EMAIL = process.env.NEXT_PUBLIC_DEMO_EMAIL;
+const DEMO_PASSWORD = process.env.NEXT_PUBLIC_DEMO_PASSWORD;
+
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -67,6 +72,30 @@ function LoginForm() {
   return (
     <div>
       <h2 className="text-2xl font-bold text-gray-900 mb-6">Sign in to your account</h2>
+
+      {DEMO_EMAIL && DEMO_PASSWORD && (
+        <div className="mb-6 p-4 bg-indigo-50 border border-indigo-200 rounded-lg text-sm">
+          <p className="font-medium text-gray-900">Just looking around?</p>
+          <p className="mt-1 text-gray-600">
+            Explore a sample venue with 30 days of demo data.
+          </p>
+          <p className="mt-2 text-gray-700 break-all">
+            <span className="text-gray-500">Email:</span> {DEMO_EMAIL}
+            <br />
+            <span className="text-gray-500">Password:</span> {DEMO_PASSWORD}
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setEmail(DEMO_EMAIL);
+              setPassword(DEMO_PASSWORD);
+            }}
+            className="mt-3 text-primary font-medium hover:text-primary-600"
+          >
+            Fill in demo login →
+          </button>
+        </div>
+      )}
 
       {error && (
         <div
