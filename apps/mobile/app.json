@@ -7,12 +7,9 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "splash": {
-      "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#6C63FF"
-    },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.pullup.app",
@@ -41,14 +38,18 @@
         "googleMaps": {
           "apiKey": "YOUR_GOOGLE_MAPS_ANDROID_API_KEY"
         }
-      }
+      },
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "plugins": [
       "expo-router",
       [
         "expo-camera",
         {
-          "cameraPermission": "PullUp needs camera access to scan QR codes at venues."
+          "cameraPermission": "PullUp needs camera access to scan QR codes at venues.",
+          "recordAudioAndroid": false
         }
       ],
       [
@@ -63,10 +64,24 @@
           "photosPermission": "PullUp needs photo access to upload receipts."
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-status-bar"
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "c7d5a204-454c-43c5-a89c-5adcb1cda834"
+      }
+    },
+    "owner": "ewang10",
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/c7d5a204-454c-43c5-a89c-5adcb1cda834"
     }
   }
 }

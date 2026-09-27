@@ -12,29 +12,38 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@expo/vector-icons": "^15.0.2",
     "@pullup/shared": "*",
     "@react-navigation/bottom-tabs": "^7.0.0",
     "@react-navigation/native": "^7.0.0",
     "@supabase/supabase-js": "^2.45.0",
-    "expo": "^55.0.2",
-    "expo-camera": "~55.0.9",
-    "expo-image-picker": "~55.0.9",
-    "expo-linking": "~55.0.7",
-    "expo-location": "~55.1.2",
-    "expo-router": "~55.0.2",
-    "expo-secure-store": "~55.0.8",
-    "expo-status-bar": "~55.0.4",
-    "react": "19.2.0",
-    "react-native": "0.83.2",
-    "react-native-gesture-handler": "~2.30.0",
-    "react-native-maps": "1.26.20",
-    "react-native-reanimated": "4.2.1",
-    "react-native-safe-area-context": "~5.6.2",
-    "react-native-screens": "~4.23.0",
+    "expo": "^57.0.0",
+    "expo-camera": "~57.0.5",
+    "expo-image-picker": "~57.0.20",
+    "expo-linking": "~57.0.11",
+    "expo-location": "~57.0.20",
+    "expo-router": "~57.0.23",
+    "expo-secure-store": "~57.0.4",
+    "expo-status-bar": "~57.0.1",
+    "expo-updates": "~57.0.23",
+    "react": "19.2.4",
+    "react-native": "0.86.3",
+    "react-native-gesture-handler": "~2.32.0",
+    "react-native-maps": "1.27.2",
+    "react-native-reanimated": "4.5.1",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "~4.26.0",
     "zustand": "^4.5.0"
   },
   "devDependencies": {
     "@types/react": "~19.2.10",
-    "typescript": "^5.3.0"
+    "typescript": "~6.0.3"
+  },
+  "expo": {
+    "install": {
+      "exclude": [
+        "react"
+      ]
+    }
   }
 }

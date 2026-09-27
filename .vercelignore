@@ -1,0 +1,9 @@
+# Never upload local secrets; env vars live in Vercel project settings
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+supabase/.temp
+supabase/.branches

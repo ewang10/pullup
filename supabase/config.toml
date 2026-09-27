@@ -1,5 +1,4 @@
-[project]
-id = "your-project-id"
+project_id = "pullup"
 
 [api]
 port = 54321

@@ -318,7 +318,7 @@ const styles = StyleSheet.create({
 
   // ── Dark overlay & scan frame ──────────────────────────────
   overlayContainer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   overlayTop: {
     flex: 1,
@@ -408,7 +408,7 @@ const styles = StyleSheet.create({
 
   // ── Result overlays (processing / success / error) ─────────
   resultOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(0, 0, 0, 0.8)",
     justifyContent: "center",
     alignItems: "center",

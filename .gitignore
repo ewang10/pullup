@@ -17,3 +17,10 @@ android/
 *.mobileprovision
 *.orig.*
 web-build/
+
+# Supabase CLI local state
+supabase/.temp/
+supabase/.branches/
+.vercel
+.env*
+!.env.example
