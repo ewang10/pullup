@@ -1,10 +1,14 @@
 /**
  * Public "Try the mobile app" page for portfolio visitors.
  *
- * Explains how to open the Expo Go preview of the rider/driver app in three
- * steps: a QR code on desktop, an "Open in Expo Go" button on phones. The
- * optional walkthrough video and demo logins appear only when their
- * NEXT_PUBLIC_* env vars are set.
+ * Each way to try the rider/driver app appears only when it is configured,
+ * so visitors never hit a dead end:
+ * - NEXT_PUBLIC_APPETIZE_URL: in-browser emulator embed (no install)
+ * - NEXT_PUBLIC_ANDROID_APK_URL: direct Android install link
+ * - NEXT_PUBLIC_EXPO_GO_PUBLIC=true: Expo Go steps. Expo Go only opens this
+ *   project for members of the owning Expo account while the project's
+ *   privacy is "hidden", so this is off by default.
+ * - NEXT_PUBLIC_DEMO_VIDEO_URL: walkthrough video
  */
 import Link from 'next/link';
 import ExpoQrCode from './ExpoQrCode';
@@ -14,6 +18,10 @@ const EXPO_GO_URL =
   process.env.NEXT_PUBLIC_EXPO_GO_URL ||
   'exp://u.expo.dev/c7d5a204-454c-43c5-a89c-5adcb1cda834?channel-name=preview&runtime-version=exposdk:57.0.0';
 const VIDEO_URL = process.env.NEXT_PUBLIC_DEMO_VIDEO_URL;
+const APPETIZE_URL = process.env.NEXT_PUBLIC_APPETIZE_URL;
+const ANDROID_APK_URL = process.env.NEXT_PUBLIC_ANDROID_APK_URL;
+const EXPO_GO_PUBLIC = process.env.NEXT_PUBLIC_EXPO_GO_PUBLIC === 'true';
+const CAN_TRY = Boolean(APPETIZE_URL || ANDROID_APK_URL || EXPO_GO_PUBLIC);
 
 const DEMO_LOGINS = [
   {
@@ -74,7 +82,12 @@ export default function TryMobilePage() {
           <h1 className="mt-6 text-3xl sm:text-4xl font-bold text-white">Try the mobile app</h1>
           <p className="mt-3 text-lg text-gray-300 max-w-2xl">
             Riders find deals at local venues and earn ride credit for showing up. Drivers earn a bonus for
-            bringing them. Open the real app on your phone in about a minute. No app store needed.
+            bringing them.{' '}
+            {APPETIZE_URL
+              ? 'Try the real app right in your browser, no download needed.'
+              : CAN_TRY
+              ? 'Try the real app on your phone.'
+              : 'Here’s a look at the app while a public version is on the way.'}
           </p>
         </div>
       </header>
@@ -90,6 +103,48 @@ export default function TryMobilePage() {
           </section>
         )}
 
+        {APPETIZE_URL && (
+          <section className="card" aria-labelledby="browser-heading">
+            <h2 id="browser-heading" className="text-xl font-semibold text-gray-900">Try it in your browser</h2>
+            <p className="text-gray-600 mt-1 mb-4">
+              A real phone running PullUp, streamed to this page. Click to start; it may take a few seconds to load.
+            </p>
+            <div className="mx-auto w-full max-w-[380px] aspect-[9/19] overflow-hidden rounded-2xl border border-gray-200 bg-gray-100">
+              <iframe src={APPETIZE_URL} title="PullUp app running in a browser-based phone emulator" className="h-full w-full" />
+            </div>
+          </section>
+        )}
+
+        {ANDROID_APK_URL && (
+          <section className="card flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4" aria-labelledby="android-heading">
+            <div>
+              <h2 id="android-heading" className="text-xl font-semibold text-gray-900">Install on Android</h2>
+              <p className="text-gray-600 mt-1">
+                Open this page on your Android phone and tap Download. Your phone will ask you to allow the
+                install, since PullUp isn&apos;t on Google Play.
+              </p>
+            </div>
+            <a href={ANDROID_APK_URL} className="btn-primary text-center whitespace-nowrap">
+              Download for Android
+            </a>
+          </section>
+        )}
+
+        {!CAN_TRY && (
+          <section className="card" aria-labelledby="preview-heading">
+            <h2 id="preview-heading" className="text-xl font-semibold text-gray-900">Private preview</h2>
+            <p className="text-gray-700 mt-1">
+              The rider and driver app isn&apos;t publicly installable yet. Apps that aren&apos;t in the App Store or
+              Google Play can only be shared with invited testers for now. A version you can try in your browser is
+              on the way.
+            </p>
+            <p className="text-gray-700 mt-3">
+              In the meantime, the venue side of PullUp is live below.
+            </p>
+          </section>
+        )}
+
+        {EXPO_GO_PUBLIC && (
         <section className="card" aria-labelledby="steps-heading">
           <h2 id="steps-heading" className="text-xl font-semibold text-gray-900">
             Open it on your phone
@@ -103,7 +158,7 @@ export default function TryMobilePage() {
                 <div>
                   <h3 className="font-semibold text-gray-900">Install Expo Go (free)</h3>
                   <p className="text-gray-700 mt-1">
-                    Expo Go lets you run apps that are still in development, without waiting for an app store.
+                    PullUp isn&apos;t in the app stores yet. Expo Go is a free app that can run it anyway.
                   </p>
                   <div className="mt-3 flex flex-wrap gap-3">
                     <a href={APP_STORE_URL} className="btn-secondary" target="_blank" rel="noopener noreferrer">
@@ -157,8 +212,9 @@ export default function TryMobilePage() {
             </div>
           </div>
         </section>
+        )}
 
-        {DEMO_LOGINS.length > 0 && (
+        {CAN_TRY && DEMO_LOGINS.length > 0 && (
           <section className="card" aria-labelledby="logins-heading">
             <h2 id="logins-heading" className="text-xl font-semibold text-gray-900">Demo logins</h2>
             <p className="text-gray-600 mt-1">Pre-filled accounts with sample activity, so you can look around right away.</p>
@@ -177,6 +233,7 @@ export default function TryMobilePage() {
           </section>
         )}
 
+        {CAN_TRY && (
         <section className="card" aria-labelledby="good-to-know-heading">
           <h2 id="good-to-know-heading" className="text-xl font-semibold text-gray-900">Good to know</h2>
           <ul className="mt-3 space-y-3 text-gray-700 list-disc pl-5">
@@ -188,12 +245,15 @@ export default function TryMobilePage() {
               <strong className="text-gray-900">Location and camera permissions</strong> are used to show nearby deals
               and scan a venue&apos;s QR code. You can say no and still browse.
             </li>
-            <li>
-              <strong className="text-gray-900">Expo Go&apos;s home screen</strong> mentions development servers and
-              &ldquo;npx expo start&rdquo;. That&apos;s for developers; you can ignore it.
-            </li>
+            {EXPO_GO_PUBLIC && (
+              <li>
+                <strong className="text-gray-900">Expo Go&apos;s home screen</strong> mentions development servers and
+                &ldquo;npx expo start&rdquo;. That&apos;s for developers; you can ignore it.
+              </li>
+            )}
           </ul>
 
+          {EXPO_GO_PUBLIC && (
           <details className="mt-5 rounded-lg border border-gray-200 p-4">
             <summary className="cursor-pointer font-medium text-gray-900">Trouble opening the app?</summary>
             <ul className="mt-3 space-y-2 text-gray-700 list-disc pl-5">
@@ -211,7 +271,9 @@ export default function TryMobilePage() {
               </li>
             </ul>
           </details>
+          )}
         </section>
+        )}
 
         <section className="card flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4" aria-labelledby="venue-heading">
           <div>

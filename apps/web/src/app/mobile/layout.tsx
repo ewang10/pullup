@@ -3,10 +3,10 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: { absolute: 'Try the PullUp mobile app' },
   description:
-    'Open the PullUp rider and driver app on your phone with Expo Go. No app store needed.',
+    'See the PullUp rider and driver app, and try it when a public version is available.',
   openGraph: {
     title: 'Try the PullUp mobile app',
-    description: 'Open the PullUp rider and driver app on your phone with Expo Go. No app store needed.',
+    description: 'See the PullUp rider and driver app, and try it when a public version is available.',
   },
 };
 

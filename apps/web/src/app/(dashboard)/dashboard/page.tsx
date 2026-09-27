@@ -75,6 +75,7 @@ export default function DashboardPage() {
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [recentClaims, setRecentClaims] = useState<ClaimRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [avgCheck, setAvgCheck] = useState<number | null>(null);
 
   useEffect(() => {
     async function fetchDashboardData() {
@@ -84,10 +85,11 @@ export default function DashboardPage() {
 
         const { data: venue } = await supabase
           .from('venues')
-          .select('id')
+          .select('id, avg_check_amount')
           .eq('owner_user_id', user.id)
           .single();
         if (!venue) return;
+        setAvgCheck(venue.avg_check_amount != null ? Number(venue.avg_check_amount) : null);
 
         const { data: venueDeals } = await supabase
           .from('deals')
@@ -200,6 +202,8 @@ export default function DashboardPage() {
       <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
       <p className="text-gray-600 mt-1 mb-6">Your last 30 days on PullUp.</p>
 
+      <EstimatedSalesCard avgCheck={avgCheck} completedVisits={stats.completedVisits} spent={stats.spent} />
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatCard
           title="Completed visits"
@@ -303,5 +307,75 @@ export default function DashboardPage() {
         <ClaimsTable claims={recentClaims} />
       </div>
     </div>
+  );
+}
+
+/**
+ * Headline value card: estimated sales from PullUp visits (completed visits x
+ * the venue's average bill) next to what those visits cost.
+ */
+function EstimatedSalesCard({
+  avgCheck,
+  completedVisits,
+  spent,
+}: {
+  avgCheck: number | null;
+  completedVisits: number;
+  spent: number;
+}) {
+  if (avgCheck == null || avgCheck <= 0) {
+    return (
+      <section className="card mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4" aria-labelledby="est-sales-heading">
+        <div>
+          <h2 id="est-sales-heading" className="text-lg font-semibold text-gray-900">See what PullUp brings in</h2>
+          <p className="text-gray-600 mt-1">
+            Add your average bill per customer and we&apos;ll estimate the sales from your PullUp visits.
+          </p>
+        </div>
+        <Link href="/settings" className="btn-primary text-center whitespace-nowrap">
+          Add average bill
+        </Link>
+      </section>
+    );
+  }
+
+  const estimatedSales = completedVisits * avgCheck;
+  const multiple = spent > 0 ? estimatedSales / spent : null;
+
+  return (
+    <section className="card mb-8 border-l-4 border-l-primary" aria-labelledby="est-sales-heading">
+      <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-6">
+        <div>
+          <h2 id="est-sales-heading" className="text-sm font-medium text-gray-600">
+            Estimated sales from PullUp visits
+          </h2>
+          <p className="text-4xl font-bold text-gray-900 mt-1">{formatCurrency(estimatedSales)}</p>
+          <p className="text-sm text-gray-600 mt-1">
+            {completedVisits.toLocaleString()} completed visit{completedVisits === 1 ? '' : 's'} ×{' '}
+            {formatCurrency(avgCheck)} average bill, last 30 days.{' '}
+            <Link href="/settings" className="text-primary font-medium hover:text-primary-600 underline-offset-2 hover:underline">
+              Change average bill
+            </Link>
+          </p>
+        </div>
+        <dl className="flex gap-8">
+          <div>
+            <dt className="text-sm text-gray-600">You spent</dt>
+            <dd className="text-2xl font-semibold text-gray-900">{formatCurrency(spent)}</dd>
+          </div>
+          {multiple !== null && (
+            <div>
+              <dt className="text-sm text-gray-600">Estimated return</dt>
+              <dd className="text-2xl font-semibold text-green-800">
+                {multiple.toFixed(1)}×<span className="sr-only"> your spend</span>
+              </dd>
+            </div>
+          )}
+        </dl>
+      </div>
+      <p className="text-xs text-gray-600 mt-4">
+        An estimate, not a sales report. It assumes each PullUp customer spent your average bill.
+      </p>
+    </section>
   );
 }

@@ -9,7 +9,7 @@
 
 import { useEffect, useState } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase-client';
-import { US_STATES } from '@pullup/shared';
+import { US_STATES, VENUE_CATEGORIES } from '@pullup/shared';
 
 interface VenueProfile {
   id: string;
@@ -18,21 +18,9 @@ interface VenueProfile {
   city: string;
   state: string;
   category: string;
+  /** Average bill per customer, kept as a string for the input */
+  avg_check_amount: string;
 }
-
-/** Must match the venue_category enum in the database */
-const VENUE_CATEGORIES = [
-  { value: 'restaurant', label: 'Restaurant' },
-  { value: 'bar', label: 'Bar / Lounge' },
-  { value: 'nightclub', label: 'Nightclub' },
-  { value: 'cafe', label: 'Cafe' },
-  { value: 'brewery', label: 'Brewery / Winery' },
-  { value: 'entertainment', label: 'Entertainment Venue' },
-  { value: 'retail', label: 'Retail Store' },
-  { value: 'fitness', label: 'Gym / Fitness' },
-  { value: 'salon', label: 'Salon / Spa' },
-  { value: 'other', label: 'Other' },
-];
 
 export default function SettingsPage() {
   const supabase = createSupabaseBrowserClient();
@@ -43,6 +31,7 @@ export default function SettingsPage() {
     city: '',
     state: '',
     category: '',
+    avg_check_amount: '',
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -67,6 +56,7 @@ export default function SettingsPage() {
           city: venue.city || '',
           state: venue.state || '',
           category: venue.category || '',
+          avg_check_amount: venue.avg_check_amount != null ? String(venue.avg_check_amount) : '',
         });
       }
       setLoading(false);
@@ -93,6 +83,7 @@ export default function SettingsPage() {
           city: profile.city,
           state: profile.state,
           category: profile.category,
+          avg_check_amount: profile.avg_check_amount === '' ? null : Number(profile.avg_check_amount),
         })
         .eq('id', profile.id);
 
@@ -124,8 +115,8 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64" role="status" aria-label="Loading settings">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      <div className="flex items-center justify-center h-64" role="status">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" aria-hidden="true" />
         <span className="sr-only">Loading settings...</span>
       </div>
     );
@@ -230,6 +221,28 @@ export default function SettingsPage() {
                 </option>
               ))}
             </select>
+          </div>
+
+          <div>
+            <label htmlFor="avg_check_amount" className="block text-sm font-medium text-gray-700 mb-1">
+              Average bill per customer ($)
+            </label>
+            <input
+              id="avg_check_amount"
+              type="number"
+              inputMode="decimal"
+              min={0}
+              max={10000}
+              step={0.01}
+              value={profile.avg_check_amount}
+              onChange={(e) => updateField('avg_check_amount', e.target.value)}
+              className="input-field max-w-xs"
+              placeholder="e.g., 35"
+              aria-describedby="avg-check-help"
+            />
+            <p id="avg-check-help" className="text-xs text-gray-600 mt-1">
+              Optional. Your dashboard uses this to estimate sales from PullUp visits. Only you can see it.
+            </p>
           </div>
 
           <div className="pt-2">

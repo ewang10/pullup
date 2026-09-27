@@ -86,6 +86,7 @@ async function main() {
       stripe_payment_method_id: 'pm_demo_placeholder',
       stripe_bank_last4: '6789',
       stripe_bank_institution: 'Demo Bank (test data)',
+      avg_check_amount: 32,
     },
   });
 
