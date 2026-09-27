@@ -16,10 +16,8 @@
       "infoPlist": {
         "NSCameraUsageDescription": "PullUp needs camera access to scan QR codes at venues.",
         "NSLocationWhenInUseUsageDescription": "PullUp needs your location to show nearby deals.",
-        "NSPhotoLibraryUsageDescription": "PullUp needs photo access to upload receipts."
-      },
-      "config": {
-        "googleMapsApiKey": "YOUR_GOOGLE_MAPS_IOS_API_KEY"
+        "NSPhotoLibraryUsageDescription": "PullUp needs photo access to upload receipts.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
