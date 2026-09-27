@@ -79,7 +79,7 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="w-64 gradient-dark min-h-screen flex flex-col">
+    <aside className="w-64 shrink-0 gradient-dark h-screen sticky top-0 flex flex-col">
       <div className="p-6">
         <h1 className="text-2xl font-bold text-white">
           Pull<span className="text-primary">Up</span>
@@ -87,7 +87,7 @@ export default function Sidebar() {
         <p className="text-gray-400 text-sm mt-1">Venue Dashboard</p>
       </div>
 
-      <nav className="flex-1 px-3" role="navigation" aria-label="Dashboard navigation">
+      <nav className="flex-1 px-3 overflow-y-auto" role="navigation" aria-label="Dashboard navigation">
         <ul className="space-y-1">
           {navItems.map((item) => {
             const isActive =
