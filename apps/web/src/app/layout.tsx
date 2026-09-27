@@ -13,7 +13,10 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'PullUp - Venue Dashboard',
+  title: {
+    template: '%s | PullUp Venue Dashboard',
+    default: 'PullUp Venue Dashboard',
+  },
   description: 'Manage your venue deals, view analytics, and handle billing with PullUp.',
 };
 

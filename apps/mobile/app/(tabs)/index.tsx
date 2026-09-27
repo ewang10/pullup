@@ -123,7 +123,7 @@ export default function DealsMapScreen() {
       <View style={styles.centered}>
         <ActivityIndicator
           size="large"
-          color="#6C63FF"
+          color="#5B53EE"
           accessibilityLabel="Loading nearby deals"
         />
         <Text style={styles.loadingText}>Finding nearby deals...</Text>
@@ -150,7 +150,7 @@ export default function DealsMapScreen() {
             title={deal.venue.name}
             description={`${formatDiscount(deal)} - ${deal.slots_remaining} slots left`}
             onCalloutPress={() => handleMarkerPress(deal)}
-            pinColor="#6C63FF"
+            pinColor="#5B53EE"
           />
         ))}
       </MapView>
@@ -172,7 +172,7 @@ export default function DealsMapScreen() {
         <View style={styles.refreshIndicator}>
           <ActivityIndicator
             size="small"
-            color="#6C63FF"
+            color="#5B53EE"
             accessibilityLabel="Refreshing deals"
           />
         </View>
@@ -259,12 +259,12 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   errorText: {
-    color: "#DC2626",
+    color: "#B91C1C",
     fontSize: 14,
     flex: 1,
   },
   retryText: {
-    color: "#6C63FF",
+    color: "#5B53EE",
     fontSize: 14,
     fontWeight: "600",
     marginLeft: 12,

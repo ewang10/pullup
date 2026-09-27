@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    --color-primary: #6C63FF;
+    --color-primary: #5B53EE;
     --color-dark: #1A1A2E;
   }
 
@@ -36,7 +36,7 @@
   .input-field {
     @apply w-full px-3 py-2 border border-gray-300 rounded-lg
       focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent
-      placeholder:text-gray-400;
+      placeholder:text-gray-600;
   }
 
   .card {
@@ -67,7 +67,7 @@
 
 /* Gradient utility classes */
 .gradient-primary {
-  background: linear-gradient(135deg, #6C63FF 0%, #4B44CC 100%);
+  background: linear-gradient(135deg, #5B53EE 0%, #4B44CC 100%);
 }
 
 .gradient-dark {

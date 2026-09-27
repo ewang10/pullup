@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: 16,
-    color: "#6C63FF",
+    color: "#5B53EE",
     fontWeight: "500",
   },
   content: {
@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 24,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: "#6B7280",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,

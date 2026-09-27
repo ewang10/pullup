@@ -90,7 +90,7 @@ export default function QRCodePage() {
             h1 { color: #1A1A2E; margin-bottom: 8px; }
             p { color: #6b7280; margin-top: 0; }
             .qr-container { margin: 24px 0; }
-            .footer { color: #9ca3af; font-size: 14px; margin-top: 24px; }
+            .footer { color: #4b5563; font-size: 14px; margin-top: 24px; }
           </style>
         </head>
         <body>
@@ -116,7 +116,7 @@ export default function QRCodePage() {
   if (!venueId) {
     return (
       <div className="card text-center py-12">
-        <p className="text-gray-500">No venue found. Please complete your venue setup.</p>
+        <p className="text-gray-600">No venue found. Please complete your venue setup.</p>
       </div>
     );
   }
@@ -128,7 +128,7 @@ export default function QRCodePage() {
       <div className="max-w-lg mx-auto">
         <div className="card text-center">
           <h2 className="text-lg font-semibold text-gray-900 mb-2">{venueName}</h2>
-          <p className="text-gray-500 mb-6">
+          <p className="text-gray-600 mb-6">
             Display this QR code at your venue for riders to scan and verify their visit.
           </p>
 
@@ -143,7 +143,7 @@ export default function QRCodePage() {
             />
           </div>
 
-          <p className="text-xs text-gray-400 font-mono mb-6 break-all">{qrValue}</p>
+          <p className="text-xs text-gray-600 font-mono mb-6 break-all">{qrValue}</p>
 
           <div className="flex gap-3 justify-center">
             <button onClick={handleDownload} className="btn-primary flex items-center gap-2">

@@ -82,7 +82,7 @@ export default function Sidebar() {
     <aside className="w-64 shrink-0 gradient-dark h-screen sticky top-0 flex flex-col">
       <div className="p-6">
         <h1 className="text-2xl font-bold text-white">
-          Pull<span className="text-primary">Up</span>
+          Pull<span className="text-primary-300">Up</span>
         </h1>
         <p className="text-gray-400 text-sm mt-1">Venue Dashboard</p>
       </div>
@@ -102,8 +102,8 @@ export default function Sidebar() {
                   aria-current={isActive ? 'page' : undefined}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                     isActive
-                      ? 'bg-primary/20 text-white border-l-3 border-primary'
-                      : 'text-gray-400 hover:text-white hover:bg-dark-300 border-l-3 border-transparent'
+                      ? 'bg-primary/20 text-white border-l-4 border-primary-300'
+                      : 'text-gray-400 hover:text-white hover:bg-dark-300 border-l-4 border-transparent'
                   }`}
                 >
                   {item.icon}

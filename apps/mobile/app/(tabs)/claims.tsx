@@ -59,9 +59,9 @@ function ClaimCard({
   const isReserved = claim.status === "reserved";
 
   const statusColors: Record<string, { bg: string; text: string }> = {
-    reserved: { bg: "#ECFDF5", text: "#059669" },
-    completed: { bg: "#F0EFFF", text: "#6C63FF" },
-    expired: { bg: "#FEF2F2", text: "#DC2626" },
+    reserved: { bg: "#ECFDF5", text: "#047857" },
+    completed: { bg: "#F0EFFF", text: "#5B53EE" },
+    expired: { bg: "#FEF2F2", text: "#B91C1C" },
     cancelled: { bg: "#F3F4F6", text: "#6B7280" },
   };
 
@@ -146,7 +146,7 @@ export default function ClaimsScreen() {
   if (!initialLoaded) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#6C63FF" />
+        <ActivityIndicator size="large" color="#5B53EE" />
       </View>
     );
   }
@@ -190,8 +190,8 @@ export default function ClaimsScreen() {
             <RefreshControl
               refreshing={claimsLoading}
               onRefresh={loadClaims}
-              tintColor="#6C63FF"
-              colors={["#6C63FF"]}
+              tintColor="#5B53EE"
+              colors={["#5B53EE"]}
             />
           }
           ItemSeparatorComponent={() => <View style={styles.separator} />}
@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
   countdown: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#F59E0B",
+    color: "#B45309",
   },
   dealTitle: {
     fontSize: 17,
@@ -262,7 +262,7 @@ const styles = StyleSheet.create({
   venueName: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#6C63FF",
+    color: "#5B53EE",
     marginBottom: 2,
   },
   venueAddress: {
@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   actionText: {
-    color: "#6C63FF",
+    color: "#5B53EE",
     fontWeight: "600",
     fontSize: 14,
     textAlign: "center",
@@ -307,7 +307,7 @@ const styles = StyleSheet.create({
   },
   browseButton: {
     marginTop: 16,
-    backgroundColor: "#6C63FF",
+    backgroundColor: "#5B53EE",
     borderRadius: 10,
     paddingHorizontal: 24,
     paddingVertical: 10,

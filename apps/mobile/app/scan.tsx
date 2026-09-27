@@ -101,7 +101,7 @@ export default function ScanScreen() {
       <View style={styles.centered}>
         <ActivityIndicator
           size="large"
-          color="#6C63FF"
+          color="#5B53EE"
           accessibilityLabel="Loading camera permissions"
         />
       </View>
@@ -201,7 +201,7 @@ export default function ScanScreen() {
           <View style={styles.resultCard}>
             <ActivityIndicator
               size="large"
-              color="#6C63FF"
+              color="#5B53EE"
               accessibilityLabel="Verifying QR code"
             />
             <Text style={styles.resultTitle}>Verifying...</Text>
@@ -288,13 +288,13 @@ const styles = StyleSheet.create({
   },
   permissionMessage: {
     fontSize: 15,
-    color: "#9CA3AF",
+    color: "#6B7280",
     textAlign: "center",
     lineHeight: 22,
     marginBottom: 8,
   },
   permissionButton: {
-    backgroundColor: "#6C63FF",
+    backgroundColor: "#5B53EE",
     borderRadius: 12,
     paddingHorizontal: 28,
     paddingVertical: 14,
@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   backButtonText: {
-    color: "#9CA3AF",
+    color: "#6B7280",
     fontSize: 15,
     fontWeight: "600",
   },
@@ -356,7 +356,7 @@ const styles = StyleSheet.create({
     left: 0,
     borderTopWidth: CORNER_THICKNESS,
     borderLeftWidth: CORNER_THICKNESS,
-    borderColor: "#6C63FF",
+    borderColor: "#5B53EE",
     borderTopLeftRadius: 4,
   },
   cornerTopRight: {
@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
     right: 0,
     borderTopWidth: CORNER_THICKNESS,
     borderRightWidth: CORNER_THICKNESS,
-    borderColor: "#6C63FF",
+    borderColor: "#5B53EE",
     borderTopRightRadius: 4,
   },
   cornerBottomLeft: {
@@ -372,7 +372,7 @@ const styles = StyleSheet.create({
     left: 0,
     borderBottomWidth: CORNER_THICKNESS,
     borderLeftWidth: CORNER_THICKNESS,
-    borderColor: "#6C63FF",
+    borderColor: "#5B53EE",
     borderBottomLeftRadius: 4,
   },
   cornerBottomRight: {
@@ -380,7 +380,7 @@ const styles = StyleSheet.create({
     right: 0,
     borderBottomWidth: CORNER_THICKNESS,
     borderRightWidth: CORNER_THICKNESS,
-    borderColor: "#6C63FF",
+    borderColor: "#5B53EE",
     borderBottomRightRadius: 4,
   },
 
@@ -398,7 +398,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   flashButtonActive: {
-    backgroundColor: "#6C63FF",
+    backgroundColor: "#5B53EE",
   },
   flashButtonText: {
     color: "#FFFFFF",
@@ -448,7 +448,7 @@ const styles = StyleSheet.create({
   successIconText: {
     fontSize: 28,
     fontWeight: "700",
-    color: "#059669",
+    color: "#047857",
   },
 
   // ── Error icon ─────────────────────────────────────────────
@@ -463,12 +463,12 @@ const styles = StyleSheet.create({
   errorIconText: {
     fontSize: 28,
     fontWeight: "700",
-    color: "#DC2626",
+    color: "#B91C1C",
   },
 
   // ── Action buttons ─────────────────────────────────────────
   retryButton: {
-    backgroundColor: "#6C63FF",
+    backgroundColor: "#5B53EE",
     borderRadius: 12,
     paddingHorizontal: 28,
     paddingVertical: 14,

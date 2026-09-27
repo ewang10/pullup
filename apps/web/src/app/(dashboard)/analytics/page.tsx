@@ -1,14 +1,16 @@
 /**
  * Analytics page for venue administrators.
  *
- * Displays time-range-selectable charts (visits over time, daily revenue)
- * and a ranked list of top deals. Queries deal_claims through the venue's
+ * Displays time-range-selectable charts (claims vs. completed visits, daily
+ * spend on PullUp) and a ranked list of top deals by completed visits. Queries deal_claims through the venue's
  * deals (since deal_claims has no direct venue_id column).
  */
 'use client';
 
 import { useEffect, useState } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase-client';
+import { CHART_AXIS, CHART_COLORS, chartTooltipStyle } from '@/lib/chart';
+import { formatCurrency } from '@/lib/claims';
 import {
   BarChart,
   Bar,
@@ -144,17 +146,27 @@ export default function AnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64" role="status" aria-label="Loading analytics">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      <div className="flex items-center justify-center h-64" role="status">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" aria-hidden="true" />
         <span className="sr-only">Loading analytics data...</span>
       </div>
     );
   }
 
+  const totals = dailyData.reduce(
+    (t, d) => ({ claims: t.claims + d.visits, completed: t.completed + d.completed, spent: t.spent + d.revenue }),
+    { claims: 0, completed: 0, spent: 0 }
+  );
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
+          <p className="text-gray-600 mt-1">
+            How riders respond to your deals, and what completed visits cost you.
+          </p>
+        </div>
         <div className="flex gap-1 bg-gray-100 rounded-lg p-1" role="group" aria-label="Time range selector">
           {(['7d', '30d', '90d'] as const).map((range) => (
             <button
@@ -164,7 +176,7 @@ export default function AnalyticsPage() {
               className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                 timeRange === range
                   ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
+                  : 'text-gray-700 hover:text-gray-900'
               }`}
             >
               {range === '7d' ? '7 days' : range === '30d' ? '30 days' : '90 days'}
@@ -175,24 +187,26 @@ export default function AnalyticsPage() {
 
       {/* Visits Over Time */}
       <div className="card mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Visits Over Time</h2>
-        <div className="h-72" aria-label="Visits over time chart">
+        <h2 className="text-lg font-semibold text-gray-900">Claims vs. completed visits</h2>
+        <p className="text-sm text-gray-600 mt-1 mb-4">
+          A claim is when a rider reserves a deal. It becomes a completed visit when they show up.
+        </p>
+        <p className="sr-only">
+          {totals.claims} claims and {totals.completed} completed visits in this period.
+          Daily figures are listed in the Daily breakdown table below.
+        </p>
+        <div className="h-72" aria-hidden="true">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={dailyData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-              <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="#9ca3af" />
-              <YAxis tick={{ fontSize: 12 }} stroke="#9ca3af" />
+              <CartesianGrid strokeDasharray="3 3" stroke={CHART_AXIS.grid} />
+              <XAxis dataKey="date" tick={{ fontSize: 12, fill: CHART_AXIS.text }} stroke={CHART_AXIS.line} />
+              <YAxis tick={{ fontSize: 12, fill: CHART_AXIS.text }} stroke={CHART_AXIS.line} />
               <Tooltip
-                contentStyle={{
-                  backgroundColor: '#1A1A2E',
-                  border: 'none',
-                  borderRadius: '8px',
-                  color: '#fff',
-                }}
+                  {...chartTooltipStyle}
               />
               <Legend />
-              <Line type="monotone" dataKey="visits" stroke="#6C63FF" strokeWidth={2} dot={false} name="Total Visits" />
-              <Line type="monotone" dataKey="completed" stroke="#10B981" strokeWidth={2} dot={false} name="Completed" />
+              <Line type="monotone" dataKey="visits" stroke={CHART_COLORS.primary} strokeWidth={2} dot={false} name="Claims" />
+              <Line type="monotone" dataKey="completed" stroke={CHART_COLORS.secondary} strokeWidth={2} strokeDasharray="6 3" dot={false} name="Completed visits" />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -201,23 +215,21 @@ export default function AnalyticsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Revenue Chart */}
         <div className="card">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Daily Revenue</h2>
-          <div className="h-64" aria-label="Daily revenue chart">
+          <h2 className="text-lg font-semibold text-gray-900">Daily spend on PullUp</h2>
+          <p className="text-sm text-gray-600 mt-1 mb-4">
+            What you paid for completed visits each day. {formatCurrency(totals.spent)} total in this period.
+          </p>
+          <div className="h-64" aria-hidden="true">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={dailyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="date" tick={{ fontSize: 11 }} stroke="#9ca3af" />
-                <YAxis tick={{ fontSize: 12 }} stroke="#9ca3af" tickFormatter={(v) => `$${v}`} />
+                <CartesianGrid strokeDasharray="3 3" stroke={CHART_AXIS.grid} />
+                <XAxis dataKey="date" tick={{ fontSize: 11, fill: CHART_AXIS.text }} stroke={CHART_AXIS.line} />
+                <YAxis tick={{ fontSize: 12, fill: CHART_AXIS.text }} stroke={CHART_AXIS.line} tickFormatter={(v) => `$${v}`} />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#1A1A2E',
-                    border: 'none',
-                    borderRadius: '8px',
-                    color: '#fff',
-                  }}
-                  formatter={(value: number) => [`$${value.toFixed(2)}`, 'Revenue']}
+                  {...chartTooltipStyle}
+                  formatter={(value: number) => [formatCurrency(value), 'Spent']}
                 />
-                <Bar dataKey="revenue" fill="#6C63FF" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="revenue" name="Spent" fill={CHART_COLORS.primary} radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -225,58 +237,61 @@ export default function AnalyticsPage() {
 
         {/* Top Deals */}
         <div className="card">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Top Deals</h2>
+          <h2 className="text-lg font-semibold text-gray-900">Top deals</h2>
+          <p className="text-sm text-gray-600 mt-1 mb-4">Ranked by completed visits.</p>
           {topDeals.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <p>No deal data for this period</p>
+            <div className="text-center py-8 text-gray-600">
+              <p>No completed visits in this period.</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <ol className="space-y-4">
               {topDeals.map((deal, index) => (
-                <div key={deal.id} className="flex items-center gap-4">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary-50 text-primary flex items-center justify-center text-sm font-bold">
+                <li key={deal.id} className="flex items-center gap-4">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary-50 text-primary flex items-center justify-center text-sm font-bold" aria-hidden="true">
                     {index + 1}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-gray-900 truncate">{deal.title}</p>
-                    <p className="text-sm text-gray-500">{deal.claims} claims</p>
+                    <p className="text-sm text-gray-600">
+                      {deal.claims} completed visit{deal.claims === 1 ? '' : 's'}
+                    </p>
                   </div>
                   <div className="text-right">
-                    <p className="font-medium text-gray-900">${deal.revenue.toFixed(2)}</p>
-                    <p className="text-xs text-gray-500">revenue</p>
+                    <p className="font-medium text-gray-900">{formatCurrency(deal.revenue)}</p>
+                    <p className="text-xs text-gray-600">spent</p>
                   </div>
-                </div>
+                </li>
               ))}
-            </div>
+            </ol>
           )}
         </div>
       </div>
 
       {/* Daily Breakdown Table */}
       <div className="card mt-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Daily Breakdown</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Daily breakdown</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <caption className="sr-only">Daily breakdown of visits, completions, and revenue</caption>
+            <caption className="sr-only">Daily claims, completed visits, show-up rate and spend, most recent first</caption>
             <thead>
               <tr className="border-b border-gray-200">
-                <th scope="col" className="text-left py-3 px-4 font-medium text-gray-500">Date</th>
-                <th scope="col" className="text-right py-3 px-4 font-medium text-gray-500">Visits</th>
-                <th scope="col" className="text-right py-3 px-4 font-medium text-gray-500">Completed</th>
-                <th scope="col" className="text-right py-3 px-4 font-medium text-gray-500">Conversion</th>
-                <th scope="col" className="text-right py-3 px-4 font-medium text-gray-500">Revenue</th>
+                <th scope="col" className="text-left py-3 px-4 font-medium text-gray-600">Date</th>
+                <th scope="col" className="text-right py-3 px-4 font-medium text-gray-600">Claims</th>
+                <th scope="col" className="text-right py-3 px-4 font-medium text-gray-600">Completed visits</th>
+                <th scope="col" className="text-right py-3 px-4 font-medium text-gray-600">Show-up rate</th>
+                <th scope="col" className="text-right py-3 px-4 font-medium text-gray-600">Spent</th>
               </tr>
             </thead>
             <tbody>
               {[...dailyData].reverse().slice(0, 14).map((day) => (
                 <tr key={day.date} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="py-3 px-4 font-medium text-gray-900">{day.date}</td>
-                  <td className="py-3 px-4 text-right text-gray-600">{day.visits}</td>
-                  <td className="py-3 px-4 text-right text-gray-600">{day.completed}</td>
-                  <td className="py-3 px-4 text-right text-gray-600">
+                  <th scope="row" className="text-left py-3 px-4 font-medium text-gray-900">{day.date}</th>
+                  <td className="py-3 px-4 text-right text-gray-700">{day.visits}</td>
+                  <td className="py-3 px-4 text-right text-gray-700">{day.completed}</td>
+                  <td className="py-3 px-4 text-right text-gray-700">
                     {day.visits > 0 ? `${((day.completed / day.visits) * 100).toFixed(1)}%` : '-'}
                   </td>
-                  <td className="py-3 px-4 text-right font-medium text-gray-900">${day.revenue.toFixed(2)}</td>
+                  <td className="py-3 px-4 text-right font-medium text-gray-900">{formatCurrency(day.revenue)}</td>
                 </tr>
               ))}
             </tbody>

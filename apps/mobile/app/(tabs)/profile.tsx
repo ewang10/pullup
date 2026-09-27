@@ -1,11 +1,13 @@
 import { View, Text, StyleSheet, Pressable, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import { useAuth } from "../../lib/auth";
 import { useAppStore } from "../../lib/store";
 
 export default function ProfileScreen() {
   const { user, profile, driverProfile, role, signOut } = useAuth();
   const reset = useAppStore((s) => s.reset);
+  const router = useRouter();
 
   const handleSignOut = () => {
     Alert.alert("Sign Out", "Are you sure you want to sign out?", [
@@ -91,6 +93,16 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Settings</Text>
 
+          <Pressable
+            style={styles.menuButton}
+            onPress={() => router.push("/reset-password")}
+            accessibilityRole="button"
+            accessibilityLabel="Change password"
+          >
+            <Text style={styles.menuLabel}>Change password</Text>
+            <Text style={styles.menuChevron} aria-hidden>&gt;</Text>
+          </Pressable>
+
           <Pressable style={styles.menuButton}>
             <Text style={styles.menuLabel}>Notifications</Text>
             <Text style={styles.menuChevron}>&gt;</Text>
@@ -134,7 +146,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: "#6C63FF",
+    backgroundColor: "#5B53EE",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -164,7 +176,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   roleText: {
-    color: "#6C63FF",
+    color: "#5B53EE",
     fontSize: 13,
     fontWeight: "600",
   },
@@ -209,12 +221,12 @@ const styles = StyleSheet.create({
   },
   menuValueHighlight: {
     fontSize: 15,
-    color: "#6C63FF",
+    color: "#5B53EE",
     fontWeight: "600",
   },
   menuChevron: {
     fontSize: 16,
-    color: "#9CA3AF",
+    color: "#6B7280",
   },
   signOutButton: {
     backgroundColor: "#FFFFFF",
@@ -226,13 +238,13 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   signOutText: {
-    color: "#DC2626",
+    color: "#B91C1C",
     fontSize: 16,
     fontWeight: "600",
   },
   version: {
     textAlign: "center",
-    color: "#9CA3AF",
+    color: "#6B7280",
     fontSize: 12,
     marginTop: 16,
   },

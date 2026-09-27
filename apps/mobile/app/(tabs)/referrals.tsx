@@ -57,7 +57,7 @@ export default function ReferralsScreen() {
   if (loading && referrals.length === 0) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#6C63FF" />
+        <ActivityIndicator size="large" color="#5B53EE" />
       </View>
     );
   }
@@ -118,8 +118,8 @@ export default function ReferralsScreen() {
           <RefreshControl
             refreshing={loading}
             onRefresh={loadReferrals}
-            tintColor="#6C63FF"
-            colors={["#6C63FF"]}
+            tintColor="#5B53EE"
+            colors={["#5B53EE"]}
           />
         }
         ListEmptyComponent={
@@ -151,12 +151,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8F9FA",
   },
   codeCard: {
-    backgroundColor: "#6C63FF",
+    backgroundColor: "#5B53EE",
     margin: 16,
     borderRadius: 16,
     padding: 24,
     alignItems: "center",
-    shadowColor: "#6C63FF",
+    shadowColor: "#5B53EE",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   shareButtonText: {
-    color: "#6C63FF",
+    color: "#5B53EE",
     fontSize: 15,
     fontWeight: "700",
   },
@@ -208,7 +208,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   errorText: {
-    color: "#DC2626",
+    color: "#B91C1C",
     fontSize: 14,
   },
   listContent: {
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   referralAvatarText: {
-    color: "#6C63FF",
+    color: "#5B53EE",
     fontWeight: "700",
     fontSize: 16,
   },
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
   claimsCount: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#6C63FF",
+    color: "#5B53EE",
   },
   claimsLabel: {
     fontSize: 11,

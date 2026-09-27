@@ -190,8 +190,8 @@ export default function DealsListScreen() {
           <RefreshControl
             refreshing={dealsLoading}
             onRefresh={loadDeals}
-            tintColor="#6C63FF"
-            colors={["#6C63FF"]}
+            tintColor="#5B53EE"
+            colors={["#5B53EE"]}
           />
         }
         ItemSeparatorComponent={() => <View style={styles.separator} />}
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   discountText: {
-    color: "#6C63FF",
+    color: "#5B53EE",
     fontSize: 13,
     fontWeight: "700",
   },
@@ -274,7 +274,7 @@ const styles = StyleSheet.create({
   venueName: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#6C63FF",
+    color: "#5B53EE",
     marginBottom: 2,
   },
   venueAddress: {
@@ -299,22 +299,22 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#10B981",
+    backgroundColor: "#047857",
   },
   slotsDotWarning: {
-    backgroundColor: "#F59E0B",
+    backgroundColor: "#B45309",
   },
   slotsText: {
     fontSize: 13,
-    color: "#10B981",
+    color: "#047857",
     fontWeight: "500",
   },
   slotsTextWarning: {
-    color: "#F59E0B",
+    color: "#B45309",
   },
   viewText: {
     fontSize: 14,
-    color: "#6C63FF",
+    color: "#5B53EE",
     fontWeight: "600",
   },
   separator: {
@@ -328,7 +328,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   errorText: {
-    color: "#DC2626",
+    color: "#B91C1C",
     fontSize: 14,
   },
   emptyContainer: {
@@ -354,7 +354,7 @@ const styles = StyleSheet.create({
   },
   retryButton: {
     marginTop: 16,
-    backgroundColor: "#6C63FF",
+    backgroundColor: "#5B53EE",
     borderRadius: 10,
     paddingHorizontal: 24,
     paddingVertical: 10,

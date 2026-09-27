@@ -38,7 +38,7 @@ export default function NewDealPage() {
   if (!venueId) {
     return (
       <div className="card text-center py-12">
-        <p className="text-gray-500">No venue found. Please complete your venue setup first.</p>
+        <p className="text-gray-600">No venue found. Please complete your venue setup first.</p>
       </div>
     );
   }

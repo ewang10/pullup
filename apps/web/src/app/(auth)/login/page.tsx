@@ -80,9 +80,9 @@ function LoginForm() {
             Explore a sample venue with 30 days of demo data.
           </p>
           <p className="mt-2 text-gray-700 break-all">
-            <span className="text-gray-500">Email:</span> {DEMO_EMAIL}
+            <span className="text-gray-600">Email:</span> {DEMO_EMAIL}
             <br />
-            <span className="text-gray-500">Password:</span> {DEMO_PASSWORD}
+            <span className="text-gray-600">Password:</span> {DEMO_PASSWORD}
           </p>
           <button
             type="button"

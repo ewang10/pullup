@@ -154,7 +154,7 @@ export default function SignupPage() {
             />
           </div>
         </div>
-        <p id="password-requirements" className="-mt-2 text-xs text-gray-500">
+        <p id="password-requirements" className="-mt-2 text-xs text-gray-600">
           {PASSWORD_REQUIREMENTS_TEXT}
         </p>
 

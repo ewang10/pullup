@@ -51,7 +51,7 @@ export default function EarningsScreen() {
   if (loading && !driverStats) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#6C63FF" />
+        <ActivityIndicator size="large" color="#5B53EE" />
       </View>
     );
   }
@@ -71,8 +71,8 @@ export default function EarningsScreen() {
         <RefreshControl
           refreshing={loading}
           onRefresh={loadStats}
-          tintColor="#6C63FF"
-          colors={["#6C63FF"]}
+          tintColor="#5B53EE"
+          colors={["#5B53EE"]}
         />
       }
     >
@@ -99,12 +99,12 @@ export default function EarningsScreen() {
         <StatCard
           label="Total Referrals"
           value={stats.total_referrals.toString()}
-          color="#6C63FF"
+          color="#5B53EE"
         />
         <StatCard
           label="Completed Claims"
           value={stats.completed_claims.toString()}
-          color="#10B981"
+          color="#047857"
         />
       </View>
 
@@ -167,16 +167,16 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   errorText: {
-    color: "#DC2626",
+    color: "#B91C1C",
     fontSize: 14,
   },
   earningsHero: {
-    backgroundColor: "#6C63FF",
+    backgroundColor: "#5B53EE",
     borderRadius: 20,
     padding: 32,
     alignItems: "center",
     marginBottom: 20,
-    shadowColor: "#6C63FF",
+    shadowColor: "#5B53EE",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.3,
     shadowRadius: 14,
@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#F59E0B",
+    backgroundColor: "#B45309",
   },
   pendingText: {
     color: "rgba(255,255,255,0.8)",
@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: 14,
     backgroundColor: "#F0EFFF",
-    color: "#6C63FF",
+    color: "#5B53EE",
     fontWeight: "700",
     fontSize: 14,
     textAlign: "center",

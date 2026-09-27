@@ -247,7 +247,7 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
             <div>
               <p className="font-medium text-gray-900">Change password</p>
-              <p className="text-sm text-gray-500">Send a password reset link to your email</p>
+              <p className="text-sm text-gray-600">Send a password reset link to your email</p>
             </div>
             <button onClick={handlePasswordChange} className="btn-secondary text-sm">
               Reset password

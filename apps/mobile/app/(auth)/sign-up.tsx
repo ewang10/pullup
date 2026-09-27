@@ -111,7 +111,7 @@ export default function SignUpScreen() {
                 value={fullName}
                 onChangeText={setFullName}
                 placeholder="John Doe"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor="#6B7280"
                 autoCapitalize="words"
                 editable={!loading}
                 accessibilityLabel="Full name"
@@ -125,7 +125,7 @@ export default function SignUpScreen() {
                 value={email}
                 onChangeText={setEmail}
                 placeholder="you@example.com"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor="#6B7280"
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -141,7 +141,7 @@ export default function SignUpScreen() {
                 value={password}
                 onChangeText={setPassword}
                 placeholder={`At least ${PASSWORD_MIN_LENGTH} characters`}
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor="#6B7280"
                 secureTextEntry
                 editable={!loading}
                 accessibilityLabel="Password"
@@ -205,7 +205,7 @@ export default function SignUpScreen() {
                 value={referralCode}
                 onChangeText={setReferralCode}
                 placeholder="Enter driver referral code"
-                placeholderTextColor="#9CA3AF"
+                placeholderTextColor="#6B7280"
                 autoCapitalize="characters"
                 editable={!loading}
                 accessibilityLabel="Referral code"
@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
   },
   backText: {
     fontSize: 16,
-    color: "#6C63FF",
+    color: "#5B53EE",
     fontWeight: "500",
   },
   title: {
@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   errorText: {
-    color: "#DC2626",
+    color: "#B91C1C",
     fontSize: 14,
   },
   form: {
@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#1A1A2E",
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: "#6B7280",
   },
   roleRow: {
     flexDirection: "row",
@@ -323,11 +323,11 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: "center",
     borderWidth: 2,
-    borderColor: "#E5E7EB",
+    borderColor: "#6B7280",
     gap: 4,
   },
   roleOptionActive: {
-    borderColor: "#6C63FF",
+    borderColor: "#5B53EE",
     backgroundColor: "#F0EFFF",
   },
   roleIcon: {
@@ -339,15 +339,15 @@ const styles = StyleSheet.create({
     color: "#6B7280",
   },
   roleTextActive: {
-    color: "#6C63FF",
+    color: "#5B53EE",
   },
   button: {
-    backgroundColor: "#6C63FF",
+    backgroundColor: "#5B53EE",
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: "center",
     marginTop: 8,
-    shadowColor: "#6C63FF",
+    shadowColor: "#5B53EE",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -372,7 +372,7 @@ const styles = StyleSheet.create({
   },
   footerLink: {
     fontSize: 14,
-    color: "#6C63FF",
+    color: "#5B53EE",
     fontWeight: "600",
   },
 });

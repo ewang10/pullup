@@ -54,7 +54,7 @@ export default function EditDealPage() {
   if (!deal) {
     return (
       <div className="card text-center py-12">
-        <p className="text-gray-500">Deal not found.</p>
+        <p className="text-gray-600">Deal not found.</p>
       </div>
     );
   }

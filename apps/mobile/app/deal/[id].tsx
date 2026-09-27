@@ -91,7 +91,7 @@ export default function DealDetailScreen() {
       <View style={styles.centered}>
         <ActivityIndicator
           size="large"
-          color="#6C63FF"
+          color="#5B53EE"
           accessibilityLabel="Loading deal details"
         />
       </View>
@@ -135,7 +135,7 @@ export default function DealDetailScreen() {
               latitude: deal.venue.latitude,
               longitude: deal.venue.longitude,
             }}
-            pinColor="#6C63FF"
+            pinColor="#5B53EE"
           />
         </MapView>
 
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 24,
     backgroundColor: "#FEE2E2",
-    color: "#DC2626",
+    color: "#B91C1C",
     fontSize: 24,
     fontWeight: "700",
     textAlign: "center",
@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
   },
   retryButton: {
     marginTop: 16,
-    backgroundColor: "#6C63FF",
+    backgroundColor: "#5B53EE",
     borderRadius: 10,
     paddingHorizontal: 24,
     paddingVertical: 10,
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   discountText: {
-    color: "#6C63FF",
+    color: "#5B53EE",
     fontSize: 15,
     fontWeight: "700",
   },
@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
   venueName: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#6C63FF",
+    color: "#5B53EE",
     marginBottom: 4,
   },
   venueAddress: {
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   rideCreditText: {
-    color: "#059669",
+    color: "#047857",
     fontSize: 15,
     fontWeight: "700",
     textAlign: "center",
@@ -349,18 +349,18 @@ const styles = StyleSheet.create({
     borderTopColor: "#E5E7EB",
   },
   claimButton: {
-    backgroundColor: "#6C63FF",
+    backgroundColor: "#5B53EE",
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: "center",
-    shadowColor: "#6C63FF",
+    shadowColor: "#5B53EE",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
   },
   claimButtonDisabled: {
-    backgroundColor: "#9CA3AF",
+    backgroundColor: "#6B7280",
     shadowOpacity: 0,
   },
   claimButtonText: {

@@ -130,7 +130,7 @@ export default function ResetPasswordPage() {
       <h2 className="text-2xl font-bold text-gray-900 mb-2">
         {mode === 'request' ? 'Reset your password' : 'Set a new password'}
       </h2>
-      <p className="text-sm text-gray-500 mb-6">
+      <p className="text-sm text-gray-600 mb-6">
         {mode === 'request'
           ? 'Enter your email and we\'ll send you a link to reset your password.'
           : 'Enter your new password below.'}
@@ -187,7 +187,7 @@ export default function ResetPasswordPage() {
               minLength={PASSWORD_MIN_LENGTH}
               aria-describedby="password-requirements"
             />
-            <p id="password-requirements" className="mt-1 text-xs text-gray-500">
+            <p id="password-requirements" className="mt-1 text-xs text-gray-600">
               {PASSWORD_REQUIREMENTS_TEXT}
             </p>
           </div>

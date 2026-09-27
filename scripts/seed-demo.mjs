@@ -14,6 +14,8 @@
  *   DEMO_EMAIL  (default: pullup.demo.app@gmail.com)
  */
 
+import { CLAIM_COST_MIN, calculateClaimCosts } from "../packages/shared/src/constants.ts";
+
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const DEMO_EMAIL = process.env.DEMO_EMAIL || 'pullup.demo.app@gmail.com';
@@ -53,11 +55,11 @@ const RIDER_NAMES = [
 ];
 
 const DEALS = [
-  { title: 'Free appetizer with any entrée', description: 'Show your PullUp pass to your server to get a free starter.', discount_type: 'fixed_amount', discount_value: 12, ride_credit_amount: 5, driver_kickback_amount: 2, platform_fee_amount: 1.5, daily_cap: 20, requires_ride_receipt: true, weight: 4 },
-  { title: '20% off your bill', description: 'Valid for dine-in parties of up to 4.', discount_type: 'percentage', discount_value: 20, ride_credit_amount: 6, driver_kickback_amount: 2.5, platform_fee_amount: 2, daily_cap: 30, requires_ride_receipt: true, weight: 5 },
-  { title: 'Happy hour: $5 off drinks', description: 'Weekdays 4–7pm. Must be 21+.', discount_type: 'fixed_amount', discount_value: 5, ride_credit_amount: 4, driver_kickback_amount: 1.5, platform_fee_amount: 1, daily_cap: 25, requires_ride_receipt: false, weight: 3 },
-  { title: 'Weekend brunch: 15% off', description: 'Saturdays and Sundays, 9am–2pm.', discount_type: 'percentage', discount_value: 15, ride_credit_amount: 5, driver_kickback_amount: 2, platform_fee_amount: 1.5, daily_cap: 15, requires_ride_receipt: true, weight: 2, weekendOnly: true },
-  { title: 'Late-night bites (paused)', description: 'Seasonal deal, currently paused.', discount_type: 'percentage', discount_value: 10, ride_credit_amount: 3, driver_kickback_amount: 1, platform_fee_amount: 1, daily_cap: 10, requires_ride_receipt: false, weight: 0, inactive: true },
+  { title: 'Free appetizer with any entrée', description: 'Show your PullUp pass to your server to get a free starter.', discount_type: 'fixed_amount', discount_value: 12, cost_per_claim: 12, daily_cap: 20, requires_ride_receipt: true, weight: 4 },
+  { title: '20% off your bill', description: 'Valid for dine-in parties of up to 4.', discount_type: 'percentage', discount_value: 20, cost_per_claim: 15, daily_cap: 30, requires_ride_receipt: true, weight: 5 },
+  { title: 'Happy hour: $5 off drinks', description: 'Weekdays 4–7pm. Must be 21+.', discount_type: 'fixed_amount', discount_value: 5, cost_per_claim: 10, daily_cap: 25, requires_ride_receipt: false, weight: 3 },
+  { title: 'Weekend brunch: 15% off', description: 'Saturdays and Sundays, 9am–2pm.', discount_type: 'percentage', discount_value: 15, cost_per_claim: 12, daily_cap: 15, requires_ride_receipt: true, weight: 2, weekendOnly: true },
+  { title: 'Late-night bites (paused)', description: 'Seasonal deal, currently paused.', discount_type: 'percentage', discount_value: 10, cost_per_claim: 10, daily_cap: 10, requires_ride_receipt: false, weight: 0, inactive: true },
 ];
 
 async function main() {
@@ -104,8 +106,10 @@ async function main() {
   const deals = await rest('deals', {
     method: 'POST',
     prefer: 'return=representation',
-    body: DEALS.map(({ weight, weekendOnly, inactive, ...d }) => ({
+    body: DEALS.map(({ weight, weekendOnly, inactive, cost_per_claim, ...d }) => ({
       ...d,
+      // Same pricing model as the deal form: min cost per claim, 50/20/30 split.
+      ...calculateClaimCosts(Math.max(cost_per_claim, CLAIM_COST_MIN)),
       venue_id: venue.id,
       hold_duration_minutes: 120,
       is_active: !inactive,

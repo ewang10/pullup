@@ -13,6 +13,10 @@ function RootLayoutNav() {
 
     const inAuthGroup = segments[0] === "(auth)";
 
+    // Reset works signed in or out, and verifying the emailed code signs the
+    // user in mid-flow, so never redirect away from it.
+    if (segments[0] === "reset-password") return;
+
     if (!session && !inAuthGroup) {
       router.replace("/(auth)/welcome");
     } else if (session && inAuthGroup) {
@@ -36,7 +40,7 @@ function RootLayoutNav() {
           options={{
             headerShown: true,
             headerTitle: "Deal Details",
-            headerTintColor: "#6C63FF",
+            headerTintColor: "#5B53EE",
             headerStyle: { backgroundColor: "#FFFFFF" },
           }}
         />
@@ -45,10 +49,11 @@ function RootLayoutNav() {
           options={{
             headerShown: true,
             headerTitle: "Active Claim",
-            headerTintColor: "#6C63FF",
+            headerTintColor: "#5B53EE",
             headerStyle: { backgroundColor: "#FFFFFF" },
           }}
         />
+        <Stack.Screen name="reset-password" options={{ headerShown: false }} />
         <Stack.Screen
           name="scan"
           options={{

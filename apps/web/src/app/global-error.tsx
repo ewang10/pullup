@@ -14,7 +14,7 @@ export default function GlobalError({
             <h1 style={{ fontSize: '2rem', fontWeight: 'bold', marginBottom: '1rem' }}>Something went wrong</h1>
             <button
               onClick={() => reset()}
-              style={{ padding: '0.75rem 1.5rem', backgroundColor: '#6C63FF', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '1rem' }}
+              style={{ padding: '0.75rem 1.5rem', backgroundColor: '#5B53EE', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '1rem' }}
             >
               Try again
             </button>

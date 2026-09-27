@@ -39,7 +39,7 @@ function TabIcon({ name, focused }: TabIconProps) {
     <Ionicons
       name={iconName}
       size={24}
-      color={focused ? "#6C63FF" : "#9CA3AF"}
+      color={focused ? "#5B53EE" : "#6B7280"}
     />
   );
 }
@@ -54,8 +54,8 @@ export default function TabsLayout() {
         headerStyle: { backgroundColor: "#FFFFFF" },
         headerTitleStyle: { color: "#1A1A2E", fontWeight: "600" },
         tabBarStyle: styles.tabBar,
-        tabBarActiveTintColor: "#6C63FF",
-        tabBarInactiveTintColor: "#9CA3AF",
+        tabBarActiveTintColor: "#5B53EE",
+        tabBarInactiveTintColor: "#6B7280",
         tabBarLabelStyle: styles.tabBarLabel,
       }}
     >

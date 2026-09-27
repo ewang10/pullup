@@ -176,7 +176,7 @@ const stepStyles = StyleSheet.create({
     alignItems: "center",
   },
   circleComplete: {
-    backgroundColor: "#6C63FF",
+    backgroundColor: "#5B53EE",
   },
   circleIncomplete: {
     backgroundColor: "#E5E7EB",
@@ -187,7 +187,7 @@ const stepStyles = StyleSheet.create({
     fontWeight: "700",
   },
   stepNumber: {
-    color: "#9CA3AF",
+    color: "#6B7280",
     fontSize: 14,
     fontWeight: "700",
   },
@@ -197,10 +197,10 @@ const stepStyles = StyleSheet.create({
     marginLeft: 6,
   },
   labelComplete: {
-    color: "#6C63FF",
+    color: "#5B53EE",
   },
   labelIncomplete: {
-    color: "#9CA3AF",
+    color: "#6B7280",
   },
   connector: {
     width: 24,
@@ -209,7 +209,7 @@ const stepStyles = StyleSheet.create({
     marginHorizontal: 6,
   },
   connectorComplete: {
-    backgroundColor: "#6C63FF",
+    backgroundColor: "#5B53EE",
   },
   connectorIncomplete: {
     backgroundColor: "#E5E7EB",
@@ -219,9 +219,9 @@ const stepStyles = StyleSheet.create({
 // ── Status badge helper ──────────────────────────────────────
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  reserved: { bg: "#FEF3C7", text: "#D97706" },
-  completed: { bg: "#ECFDF5", text: "#059669" },
-  expired: { bg: "#FEE2E2", text: "#DC2626" },
+  reserved: { bg: "#FEF3C7", text: "#92400E" },
+  completed: { bg: "#ECFDF5", text: "#047857" },
+  expired: { bg: "#FEE2E2", text: "#B91C1C" },
   cancelled: { bg: "#F3F4F6", text: "#6B7280" },
 };
 
@@ -355,7 +355,7 @@ export default function ClaimDetailScreen() {
       <View style={styles.centered}>
         <ActivityIndicator
           size="large"
-          color="#6C63FF"
+          color="#5B53EE"
           accessibilityLabel="Loading claim details"
         />
       </View>
@@ -402,8 +402,8 @@ export default function ClaimDetailScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor="#6C63FF"
-            colors={["#6C63FF"]}
+            tintColor="#5B53EE"
+            colors={["#5B53EE"]}
           />
         }
       >
@@ -493,7 +493,7 @@ export default function ClaimDetailScreen() {
           {actionLoading ? (
             <ActivityIndicator
               size="large"
-              color="#6C63FF"
+              color="#5B53EE"
               accessibilityLabel="Processing action"
             />
           ) : (
@@ -537,7 +537,7 @@ export default function ClaimDetailScreen() {
           {actionLoading ? (
             <ActivityIndicator
               size="large"
-              color="#6C63FF"
+              color="#5B53EE"
               accessibilityLabel="Uploading receipt"
             />
           ) : (
@@ -589,7 +589,7 @@ const styles = StyleSheet.create({
   errorIconText: {
     fontSize: 24,
     fontWeight: "700",
-    color: "#DC2626",
+    color: "#B91C1C",
   },
   errorTitle: {
     fontSize: 18,
@@ -603,7 +603,7 @@ const styles = StyleSheet.create({
   },
   retryButton: {
     marginTop: 16,
-    backgroundColor: "#6C63FF",
+    backgroundColor: "#5B53EE",
     borderRadius: 10,
     paddingHorizontal: 24,
     paddingVertical: 10,
@@ -643,12 +643,12 @@ const styles = StyleSheet.create({
   countdown: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#F59E0B",
+    color: "#B45309",
   },
   countdownExpired: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#DC2626",
+    color: "#B91C1C",
   },
 
   // ── Deal info ──────────────────────────────────────────────
@@ -661,7 +661,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   discountText: {
-    color: "#6C63FF",
+    color: "#5B53EE",
     fontSize: 15,
     fontWeight: "700",
   },
@@ -685,7 +685,7 @@ const styles = StyleSheet.create({
   venueName: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#6C63FF",
+    color: "#5B53EE",
     marginBottom: 4,
   },
   venueAddress: {
@@ -749,22 +749,22 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     flex: 1,
-    backgroundColor: "#6C63FF",
+    backgroundColor: "#5B53EE",
     borderRadius: 14,
     paddingVertical: 14,
     alignItems: "center",
-    shadowColor: "#6C63FF",
+    shadowColor: "#5B53EE",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
   },
   primaryButtonFull: {
-    backgroundColor: "#6C63FF",
+    backgroundColor: "#5B53EE",
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: "center",
-    shadowColor: "#6C63FF",
+    shadowColor: "#5B53EE",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -783,7 +783,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   secondaryButtonText: {
-    color: "#6C63FF",
+    color: "#5B53EE",
     fontSize: 16,
     fontWeight: "700",
   },
@@ -792,7 +792,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   cancelClaimButtonText: {
-    color: "#DC2626",
+    color: "#B91C1C",
     fontSize: 15,
     fontWeight: "600",
   },
