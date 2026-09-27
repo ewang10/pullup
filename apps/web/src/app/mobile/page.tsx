@@ -116,7 +116,7 @@ export default function TryMobilePage() {
         )}
 
         {ANDROID_APK_URL && (
-          <section className="card flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4" aria-labelledby="android-heading">
+          <section className="card" aria-labelledby="android-heading">
             <div>
               <h2 id="android-heading" className="text-xl font-semibold text-gray-900">Install on Android</h2>
               <p className="text-gray-600 mt-1">
@@ -124,7 +124,7 @@ export default function TryMobilePage() {
                 install, since PullUp isn&apos;t on Google Play.
               </p>
             </div>
-            <a href={ANDROID_APK_URL} className="btn-primary text-center whitespace-nowrap">
+            <a href={ANDROID_APK_URL} className="btn-primary inline-block mt-4">
               Download for Android
             </a>
           </section>
@@ -275,14 +275,14 @@ export default function TryMobilePage() {
         </section>
         )}
 
-        <section className="card flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4" aria-labelledby="venue-heading">
+        <section className="card" aria-labelledby="venue-heading">
           <div>
             <h2 id="venue-heading" className="text-xl font-semibold text-gray-900">See the venue side too</h2>
             <p className="text-gray-600 mt-1">
               Venues create deals and track visits in a web dashboard. A demo login is on the sign-in page.
             </p>
           </div>
-          <Link href="/login" className="btn-primary text-center whitespace-nowrap">
+          <Link href="/login" className="btn-primary inline-block mt-4">
             Open venue dashboard
           </Link>
         </section>
