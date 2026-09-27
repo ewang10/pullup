@@ -4,7 +4,13 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createSupabaseBrowserClient } from '@/lib/supabase-client';
-import { VENUE_CATEGORIES, US_STATES } from '@pullup/shared';
+import {
+  VENUE_CATEGORIES,
+  US_STATES,
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_REQUIREMENTS_TEXT,
+  validatePassword,
+} from '@pullup/shared';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -36,8 +42,9 @@ export default function SignupPage() {
       return;
     }
 
-    if (formData.password.length < 8) {
-      setError('Password must be at least 8 characters');
+    const passwordError = validatePassword(formData.password);
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
 
@@ -126,8 +133,10 @@ export default function SignupPage() {
               value={formData.password}
               onChange={(e) => updateField('password', e.target.value)}
               className="input-field"
-              placeholder="Min 8 characters"
+              placeholder={`Min ${PASSWORD_MIN_LENGTH} characters`}
               required
+              minLength={PASSWORD_MIN_LENGTH}
+              aria-describedby="password-requirements"
             />
           </div>
           <div>
@@ -145,6 +154,9 @@ export default function SignupPage() {
             />
           </div>
         </div>
+        <p id="password-requirements" className="-mt-2 text-xs text-gray-500">
+          {PASSWORD_REQUIREMENTS_TEXT}
+        </p>
 
         <div>
           <label htmlFor="fullName" className="block text-sm font-medium text-gray-700 mb-1">

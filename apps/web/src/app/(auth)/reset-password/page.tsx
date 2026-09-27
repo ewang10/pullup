@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createSupabaseBrowserClient } from '@/lib/supabase-client';
+import { PASSWORD_MIN_LENGTH, PASSWORD_REQUIREMENTS_TEXT, validatePassword } from '@pullup/shared';
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -94,8 +95,9 @@ export default function ResetPasswordPage() {
       return;
     }
 
-    if (password.length < 8) {
-      setMessage({ type: 'error', text: 'Password must be at least 8 characters.' });
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      setMessage({ type: 'error', text: passwordError });
       return;
     }
 
@@ -180,9 +182,14 @@ export default function ResetPasswordPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="input-field"
-              placeholder="Min 8 characters"
+              placeholder={`Min ${PASSWORD_MIN_LENGTH} characters`}
               required
+              minLength={PASSWORD_MIN_LENGTH}
+              aria-describedby="password-requirements"
             />
+            <p id="password-requirements" className="mt-1 text-xs text-gray-500">
+              {PASSWORD_REQUIREMENTS_TEXT}
+            </p>
           </div>
 
           <div>

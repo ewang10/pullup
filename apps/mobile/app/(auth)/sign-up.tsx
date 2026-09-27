@@ -22,6 +22,11 @@ import {
 import { useRouter, Link } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth, type UserRole } from "../../lib/auth";
+import {
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_REQUIREMENTS_TEXT,
+  validatePassword,
+} from "@pullup/shared";
 
 export default function SignUpScreen() {
   const router = useRouter();
@@ -40,8 +45,9 @@ export default function SignUpScreen() {
       setError("Please fill in all required fields.");
       return;
     }
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters.");
+    const passwordError = validatePassword(password);
+    if (passwordError) {
+      setError(passwordError);
       return;
     }
 
@@ -134,12 +140,14 @@ export default function SignUpScreen() {
                 style={styles.input}
                 value={password}
                 onChangeText={setPassword}
-                placeholder="At least 6 characters"
+                placeholder={`At least ${PASSWORD_MIN_LENGTH} characters`}
                 placeholderTextColor="#9CA3AF"
                 secureTextEntry
                 editable={!loading}
                 accessibilityLabel="Password"
+                accessibilityHint={PASSWORD_REQUIREMENTS_TEXT}
               />
+              <Text style={styles.hint}>{PASSWORD_REQUIREMENTS_TEXT}</Text>
             </View>
 
             <View style={styles.inputGroup}>
@@ -284,6 +292,10 @@ const styles = StyleSheet.create({
   },
   inputGroup: {
     gap: 6,
+  },
+  hint: {
+    fontSize: 12,
+    color: "#6B7280",
   },
   label: {
     fontSize: 14,
