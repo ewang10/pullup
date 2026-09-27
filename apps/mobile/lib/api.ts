@@ -24,11 +24,141 @@ interface ApiResult<T> {
   error: string | null;
 }
 
+/** Flat row shape returned by the `get_nearby_deals` RPC. */
+interface NearbyDealRow {
+  deal_id: string;
+  title: string;
+  description: string | null;
+  discount_type: DealWithSlots["discount_type"];
+  discount_value: number;
+  ride_credit_amount: number;
+  driver_kickback_amount: number;
+  platform_fee_amount: number;
+  daily_cap: number;
+  hold_duration_minutes: number;
+  deal_created_at: string;
+  venue_id: string;
+  venue_name: string;
+  venue_address: string;
+  venue_latitude: number;
+  venue_longitude: number;
+  venue_category: DealWithSlots["venue"]["category"];
+  distance_miles: number;
+  slots_remaining: number;
+}
+
+/** Map an RPC row to the nested `DealWithSlots` shape the screens use. */
+function toDealWithSlots(row: NearbyDealRow): DealWithSlots {
+  return {
+    id: row.deal_id,
+    venue_id: row.venue_id,
+    title: row.title,
+    description: row.description ?? "",
+    discount_type: row.discount_type,
+    discount_value: Number(row.discount_value),
+    ride_credit_amount: Number(row.ride_credit_amount),
+    driver_kickback_amount: Number(row.driver_kickback_amount),
+    platform_fee_amount: Number(row.platform_fee_amount),
+    daily_cap: row.daily_cap,
+    hold_duration_minutes: row.hold_duration_minutes,
+    is_active: true,
+    created_at: row.deal_created_at,
+    distance_miles: Number(row.distance_miles),
+    slots_remaining: row.slots_remaining,
+    // The RPC returns only the venue fields the list and map need.
+    venue: {
+      id: row.venue_id,
+      owner_user_id: "",
+      name: row.venue_name,
+      description: "",
+      category: row.venue_category,
+      address: row.venue_address,
+      city: "",
+      state: "",
+      latitude: Number(row.venue_latitude),
+      longitude: Number(row.venue_longitude),
+      image_url: null,
+      stripe_customer_id: null,
+      is_active: true,
+      created_at: "",
+    },
+  };
+}
+
+async function callNearbyDeals(
+  lat: number,
+  lng: number,
+  radiusMiles: number
+): Promise<ApiResult<DealWithSlots[]>> {
+  const { data, error } = await supabase.rpc("get_nearby_deals", {
+    user_lat: lat,
+    user_lng: lng,
+    radius_miles: radiusMiles,
+  });
+  if (error) return { data: null, error: error.message };
+  return { data: ((data ?? []) as NearbyDealRow[]).map(toDealWithSlots), error: null };
+}
+
+/** Portfolio demo venue shown when a viewer has no real deals nearby. */
+const DEMO_VENUE_ID = process.env.EXPO_PUBLIC_DEMO_VENUE_ID;
+
+function milesBetween(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const rad = (d: number) => (d * Math.PI) / 180;
+  const a =
+    Math.sin(rad(lat2 - lat1) / 2) ** 2 +
+    Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(rad(lng2 - lng1) / 2) ** 2;
+  return 3959 * 2 * Math.asin(Math.sqrt(a));
+}
+
+/**
+ * Fetch the demo venue's active deals, marked `is_demo`.
+ *
+ * Returns an empty list when `EXPO_PUBLIC_DEMO_VENUE_ID` is not set, so
+ * non-demo builds never show demo data. Distances are measured from the
+ * viewer when their location is known.
+ */
+export async function fetchDemoDeals(
+  userLat?: number,
+  userLng?: number
+): Promise<ApiResult<DealWithSlots[]>> {
+  if (!DEMO_VENUE_ID) return { data: [], error: null };
+  try {
+    const { data: venue, error: venueError } = await supabase
+      .from("venues")
+      .select("latitude, longitude")
+      .eq("id", DEMO_VENUE_ID)
+      .single();
+    if (venueError || !venue?.latitude || !venue?.longitude) {
+      return { data: [], error: null };
+    }
+
+    const venueLat = Number(venue.latitude);
+    const venueLng = Number(venue.longitude);
+    const { data, error } = await callNearbyDeals(venueLat, venueLng, 0.5);
+    if (error) return { data: null, error };
+
+    const deals = (data ?? [])
+      .filter((d) => d.venue_id === DEMO_VENUE_ID)
+      .map((d) => ({
+        ...d,
+        is_demo: true,
+        distance_miles:
+          userLat != null && userLng != null
+            ? milesBetween(userLat, userLng, venueLat, venueLng)
+            : 0,
+      }));
+    return { data: deals, error: null };
+  } catch (err) {
+    return { data: null, error: "Failed to fetch demo deals" };
+  }
+}
+
 /**
  * Fetch deals near a geographic point.
  *
  * Calls the `get_nearby_deals` Postgres RPC which returns deals joined
- * with venue info, remaining daily slots, and distance in miles.
+ * with venue info, remaining daily slots, and distance in miles. When
+ * nothing is nearby, falls back to the demo venue's deals (if configured).
  *
  * @param lat - User's current latitude.
  * @param lng - User's current longitude.
@@ -41,14 +171,9 @@ export async function fetchNearbyDeals(
   radiusMiles: number = 10
 ): Promise<ApiResult<DealWithSlots[]>> {
   try {
-    const { data, error } = await supabase.rpc("get_nearby_deals", {
-      user_lat: lat,
-      user_lng: lng,
-      radius_miles: radiusMiles,
-    });
-
-    if (error) return { data: null, error: error.message };
-    return { data: data as DealWithSlots[], error: null };
+    const result = await callNearbyDeals(lat, lng, radiusMiles);
+    if (result.error || (result.data && result.data.length > 0)) return result;
+    return fetchDemoDeals(lat, lng);
   } catch (err) {
     return { data: null, error: "Failed to fetch nearby deals" };
   }

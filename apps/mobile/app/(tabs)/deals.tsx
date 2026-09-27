@@ -18,7 +18,7 @@ import {
 import { useRouter } from "expo-router";
 import { useAppStore } from "../../lib/store";
 import type { DealWithSlots } from "@pullup/shared";
-import { fetchNearbyDeals } from "../../lib/api";
+import { fetchDemoDeals, fetchNearbyDeals } from "../../lib/api";
 import { getCurrentLocation } from "../../lib/location";
 
 /** Format a deal's discount as a human-readable badge string. */
@@ -44,10 +44,14 @@ function DealCard({ deal, onPress }: { deal: DealWithSlots; onPress: () => void 
         <View style={styles.discountBadge}>
           <Text style={styles.discountText}>{discountLabel}</Text>
         </View>
-        {deal.distance_miles !== undefined && (
-          <Text style={styles.distanceText}>
-            {deal.distance_miles.toFixed(1)} mi
-          </Text>
+        {deal.is_demo ? (
+          <Text style={styles.demoTag}>DEMO</Text>
+        ) : (
+          deal.distance_miles !== undefined && (
+            <Text style={styles.distanceText}>
+              {deal.distance_miles.toFixed(1)} mi
+            </Text>
+          )
         )}
       </View>
 
@@ -112,7 +116,13 @@ export default function DealsListScreen() {
         setDeals(data);
       }
     } else {
-      setDealsError("Could not determine location");
+      // Without a location, still show the demo venue when one is configured.
+      const { data } = await fetchDemoDeals();
+      if (data && data.length > 0) {
+        setDeals(data);
+      } else {
+        setDealsError("Could not determine location");
+      }
     }
 
     setDealsLoading(false);
@@ -165,6 +175,17 @@ export default function DealsListScreen() {
         )}
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={renderEmpty}
+        ListHeaderComponent={
+          deals.length > 0 && deals.every((d) => d.is_demo) ? (
+            <View style={styles.demoBanner}>
+              <Text style={styles.demoBannerTitle}>No PullUp venues near you yet</Text>
+              <Text style={styles.demoBannerText}>
+                These deals are from {deals[0].venue.name}, a demo venue in Sacramento, so
+                you can explore the app.
+              </Text>
+            </View>
+          ) : null
+        }
         refreshControl={
           <RefreshControl
             refreshing={dealsLoading}
@@ -214,6 +235,30 @@ const styles = StyleSheet.create({
     color: "#6C63FF",
     fontSize: 13,
     fontWeight: "700",
+  },
+  demoTag: {
+    color: "#4F46E5",
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+  },
+  demoBanner: {
+    backgroundColor: "#EEF2FF",
+    borderColor: "#C7D2FE",
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    gap: 2,
+    marginBottom: 12,
+  },
+  demoBannerTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#1A1A2E",
+  },
+  demoBannerText: {
+    fontSize: 13,
+    color: "#4B5563",
   },
   distanceText: {
     color: "#6B7280",

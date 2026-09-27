@@ -215,6 +215,8 @@ export interface DealWithSlots extends DealWithVenue {
   slots_remaining: number;
   /** Distance from the querying user in miles */
   distance_miles: number;
+  /** True when shown as the portfolio demo fallback (no real deals nearby) */
+  is_demo?: boolean;
 }
 
 /** Claim with full deal and venue details, used on the mobile claim detail screen */

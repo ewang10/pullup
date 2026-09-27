@@ -17,7 +17,7 @@ import MapView, { Marker, Region } from "react-native-maps";
 import { useRouter } from "expo-router";
 import { useAppStore } from "../../lib/store";
 import type { DealWithSlots } from "@pullup/shared";
-import { fetchNearbyDeals } from "../../lib/api";
+import { fetchDemoDeals, fetchNearbyDeals } from "../../lib/api";
 import { getCurrentLocation } from "../../lib/location";
 
 const DEFAULT_REGION: Region = {
@@ -82,14 +82,37 @@ export default function DealsMapScreen() {
         setDealsError(error);
       } else if (data) {
         setDeals(data);
+        if (data.length > 0 && data.every((d) => d.is_demo)) {
+          focusOn(data[0]);
+        }
       }
     } else {
-      setDealsError(locError ?? "Could not determine location");
+      // Without a location, still show the demo venue when one is configured.
+      const { data } = await fetchDemoDeals();
+      if (data && data.length > 0) {
+        setDeals(data);
+        focusOn(data[0]);
+      } else {
+        setDealsError(locError ?? "Could not determine location");
+      }
     }
 
     setDealsLoading(false);
     setInitialLoaded(true);
   };
+
+  const focusOn = (deal: DealWithSlots) => {
+    const target: Region = {
+      latitude: deal.venue.latitude,
+      longitude: deal.venue.longitude,
+      latitudeDelta: 0.02,
+      longitudeDelta: 0.02,
+    };
+    setRegion(target);
+    mapRef.current?.animateToRegion(target, 600);
+  };
+
+  const showingDemo = deals.length > 0 && deals.every((d) => d.is_demo);
 
   const handleMarkerPress = (deal: DealWithSlots) => {
     router.push(`/deal/${deal.id}`);
@@ -155,9 +178,19 @@ export default function DealsMapScreen() {
         </View>
       )}
 
+      {showingDemo && !dealsError && (
+        <View style={styles.demoBanner} accessibilityRole="summary">
+          <Text style={styles.demoBannerTitle}>No PullUp venues near you yet</Text>
+          <Text style={styles.demoBannerText}>
+            Showing {deals[0].venue.name}, a demo venue in Sacramento.
+          </Text>
+        </View>
+      )}
+
       <View style={styles.dealCount}>
         <Text style={styles.dealCountText}>
-          {deals.length} deal{deals.length !== 1 ? "s" : ""} nearby
+          {deals.length} {showingDemo ? "demo " : ""}deal{deals.length !== 1 ? "s" : ""}
+          {showingDemo ? "" : " nearby"}
         </Text>
       </View>
     </View>
@@ -181,6 +214,32 @@ const styles = StyleSheet.create({
   loadingText: {
     fontSize: 16,
     color: "#6B7280",
+  },
+  demoBanner: {
+    position: "absolute",
+    top: 16,
+    left: 16,
+    right: 16,
+    backgroundColor: "#EEF2FF",
+    borderColor: "#C7D2FE",
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    gap: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  demoBannerTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#1A1A2E",
+  },
+  demoBannerText: {
+    fontSize: 13,
+    color: "#4B5563",
   },
   errorBanner: {
     position: "absolute",
