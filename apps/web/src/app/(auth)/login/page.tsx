@@ -163,6 +163,13 @@ function LoginForm() {
           Sign up
         </Link>
       </p>
+
+      <p className="mt-6 pt-4 border-t border-gray-200 text-center text-sm text-gray-600">
+        Looking for the rider and driver app?{' '}
+        <Link href="/mobile" className="text-primary font-medium hover:text-primary-600">
+          Try the mobile app
+        </Link>
+      </p>
     </div>
   );
 }
