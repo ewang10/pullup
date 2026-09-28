@@ -241,7 +241,9 @@ export default function SettingsPage() {
               aria-describedby="avg-check-help"
             />
             <p id="avg-check-help" className="text-xs text-gray-600 mt-1">
-              Optional. Your dashboard uses this to estimate sales from PullUp visits. Only you can see it.
+              Optional. Your point-of-sale reports usually call this &ldquo;average ticket&rdquo; or &ldquo;average
+              sale&rdquo;, or divide a typical week&apos;s sales by its number of customers. Your dashboard uses it to
+              estimate sales from PullUp visits until it has enough real venue receipts. Only you can see it.
             </p>
           </div>
 

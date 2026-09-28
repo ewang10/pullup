@@ -421,6 +421,15 @@ async function main() {
       method: 'PATCH',
       body: { venue_receipt_url: SAMPLE_RECEIPTS.venue[0].path, venue_receipt_status: 'approved' },
     });
+    // Bill totals staff recorded from those receipts ($22–48), shown to the venue as real spend.
+    await Promise.all(
+      approvedVenue.map((c) =>
+        rest(`deal_claims?id=eq.${c.id}`, {
+          method: 'PATCH',
+          body: { venue_bill_amount: Number((22 + rand() * 26).toFixed(2)) },
+        })
+      )
+    );
   }
 
   // Waiting for staff: the first one has its ride receipt approved and the bill still pending.
@@ -470,7 +479,7 @@ async function main() {
   for (const c of inserted) {
     if (heldIds.has(c.id)) c.driver_kickback_paid = false;
   }
-  console.log(`Receipts: ${inReview.length} visits waiting for staff, ${approved.length} approved${
+  console.log(`Receipts: ${inReview.length} visits waiting for staff, ${approved.length} approved (${approvedVenue.length} with bill totals)${
     riderToUpload ? ', demo rider has 1 to upload' : ''}${riderRejected ? ' and 1 rejected' : ''}`);
   console.log(`Driver applications: ${APPLICANTS.filter((a) => a.status === 'pending').length} pending, ${
     APPLICANTS.filter((a) => a.status === 'rejected').length} rejected`);

@@ -50,6 +50,8 @@ interface ClaimWithDeal {
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+// Use real spend once this many venue receipts (last 90 days) have bill totals.
+const MIN_RECEIPTS_FOR_AVERAGE = 5;
 
 function changeLabel(current: number, previous: number): { text: string; type: 'positive' | 'negative' | 'neutral' } | undefined {
   const pct = percentChange(current, previous);
@@ -76,6 +78,7 @@ export default function DashboardPage() {
   const [recentClaims, setRecentClaims] = useState<ClaimRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [avgCheck, setAvgCheck] = useState<number | null>(null);
+  const [receiptSpend, setReceiptSpend] = useState<{ average: number; count: number } | null>(null);
 
   useEffect(() => {
     async function fetchDashboardData() {
@@ -151,6 +154,19 @@ export default function DashboardPage() {
         setStats(next);
         setChartData(Array.from(daily.values()));
 
+        // Real spend: bill totals staff recorded from approved venue receipts.
+        const { data: bills } = await supabase
+          .from('deal_claims')
+          .select('venue_bill_amount')
+          .in('deal_id', dealIds)
+          .eq('venue_receipt_status', 'approved')
+          .not('venue_bill_amount', 'is', null)
+          .gte('reserved_at', new Date(now - 90 * DAY_MS).toISOString());
+        const amounts = (bills || []).map((b) => Number(b.venue_bill_amount)).filter((n) => n > 0);
+        setReceiptSpend(
+          amounts.length ? { average: amounts.reduce((a, b) => a + b, 0) / amounts.length, count: amounts.length } : null
+        );
+
         // Recent claims, with rider display names from a venue-scoped RPC
         // (venue admins cannot read rider profiles directly).
         const recent = claims.slice(0, 10);
@@ -202,7 +218,12 @@ export default function DashboardPage() {
       <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
       <p className="text-gray-600 mt-1 mb-6">Your last 30 days on PullUp.</p>
 
-      <EstimatedSalesCard avgCheck={avgCheck} completedVisits={stats.completedVisits} spent={stats.spent} />
+      <EstimatedSalesCard
+        avgCheck={avgCheck}
+        receiptSpend={receiptSpend}
+        completedVisits={stats.completedVisits}
+        spent={stats.spent}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatCard
@@ -312,18 +333,24 @@ export default function DashboardPage() {
 
 /**
  * Headline value card: estimated sales from PullUp visits (completed visits x
- * the venue's average bill) next to what those visits cost.
+ * average bill) next to what those visits cost. The average comes from real
+ * venue receipts once there are enough, otherwise from the venue's estimate.
  */
 function EstimatedSalesCard({
   avgCheck,
+  receiptSpend,
   completedVisits,
   spent,
 }: {
   avgCheck: number | null;
+  receiptSpend: { average: number; count: number } | null;
   completedVisits: number;
   spent: number;
 }) {
-  if (avgCheck == null || avgCheck <= 0) {
+  const fromReceipts = receiptSpend !== null && receiptSpend.count >= MIN_RECEIPTS_FOR_AVERAGE;
+  const averageBill = fromReceipts ? receiptSpend.average : avgCheck;
+
+  if (averageBill == null || averageBill <= 0) {
     return (
       <section className="card mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4" aria-labelledby="est-sales-heading">
         <div>
@@ -339,7 +366,7 @@ function EstimatedSalesCard({
     );
   }
 
-  const estimatedSales = completedVisits * avgCheck;
+  const estimatedSales = completedVisits * averageBill;
   const multiple = spent > 0 ? estimatedSales / spent : null;
 
   return (
@@ -352,10 +379,25 @@ function EstimatedSalesCard({
           <p className="text-4xl font-bold text-gray-900 mt-1">{formatCurrency(estimatedSales)}</p>
           <p className="text-sm text-gray-600 mt-1">
             {completedVisits.toLocaleString()} completed visit{completedVisits === 1 ? '' : 's'} ×{' '}
-            {formatCurrency(avgCheck)} average bill, last 30 days.{' '}
-            <Link href="/settings" className="text-primary font-medium hover:text-primary-600 underline-offset-2 hover:underline">
-              Change average bill
-            </Link>
+            {formatCurrency(averageBill)} average bill, last 30 days.
+          </p>
+          <p className="text-sm text-gray-600 mt-1">
+            {fromReceipts ? (
+              <>
+                Average bill from {receiptSpend.count} PullUp customer receipts (last 90 days).
+                {avgCheck ? ` Your own estimate is ${formatCurrency(avgCheck)}.` : ''}
+              </>
+            ) : (
+              <>
+                Using your estimate.{' '}
+                {receiptSpend
+                  ? `Switches to real receipts after ${MIN_RECEIPTS_FOR_AVERAGE - receiptSpend.count} more.`
+                  : 'Deals that require a venue receipt replace this with real spend over time.'}{' '}
+                <Link href="/settings" className="text-primary font-medium hover:text-primary-600 underline-offset-2 hover:underline">
+                  Change estimate
+                </Link>
+              </>
+            )}
           </p>
         </div>
         <dl className="flex gap-8">
@@ -374,7 +416,7 @@ function EstimatedSalesCard({
         </dl>
       </div>
       <p className="text-xs text-gray-600 mt-4">
-        An estimate, not a sales report. It assumes each PullUp customer spent your average bill.
+        An estimate, not a sales report. It assumes each PullUp customer spent the average bill above.
       </p>
     </section>
   );

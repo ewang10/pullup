@@ -53,6 +53,8 @@ export default function StaffReceiptsPage() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busyKey, setBusyKey] = useState<string | null>(null);
+  // Bill totals typed by staff for venue receipts, keyed by claim.
+  const [billTotals, setBillTotals] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -88,8 +90,27 @@ export default function StaffReceiptsPage() {
 
   const review = async (item: QueueItem, type: ReceiptType, approved: boolean) => {
     const key = `${item.claim_id}:${type}`;
+    // Approving a venue receipt records the bill total (real spend data for the venue).
+    const billTotal = Number(billTotals[item.claim_id]);
+    if (approved && type === 'venue') {
+      if (!billTotals[item.claim_id] || !Number.isFinite(billTotal) || billTotal <= 0) {
+        setError('Enter the bill total from the receipt before approving it.');
+        return;
+      }
+    }
     setBusyKey(key);
     setError(null);
+    if (approved && type === 'venue') {
+      const { error: billError } = await supabase.rpc('set_venue_bill_amount', {
+        p_claim_id: item.claim_id,
+        p_amount: billTotal,
+      });
+      if (billError) {
+        setBusyKey(null);
+        setError(billError.message);
+        return;
+      }
+    }
     const { data, error: err } = await supabase.functions.invoke('verify-receipt', {
       body: { claim_id: item.claim_id, approved, receipt_type: type },
     });
@@ -193,6 +214,28 @@ export default function StaffReceiptsPage() {
                           <p className="mt-3 text-sm text-gray-700">Photo unavailable.</p>
                         ) : (
                           <p className="mt-3 text-sm text-gray-700">The rider hasn&apos;t uploaded this yet.</p>
+                        )}
+                        {status === 'pending_review' && type === 'venue' && (
+                          <div className="mt-3">
+                            <label htmlFor={`bill-${item.claim_id}`} className="block text-sm font-medium text-gray-900">
+                              Bill total on the receipt ($)
+                            </label>
+                            <input
+                              id={`bill-${item.claim_id}`}
+                              type="number"
+                              inputMode="decimal"
+                              min={0}
+                              step={0.01}
+                              value={billTotals[item.claim_id] ?? ''}
+                              onChange={(e) => setBillTotals((t) => ({ ...t, [item.claim_id]: e.target.value }))}
+                              className="input-field mt-1"
+                              placeholder="e.g. 33.83"
+                              aria-describedby={`bill-help-${item.claim_id}`}
+                            />
+                            <p id={`bill-help-${item.claim_id}`} className="text-xs text-gray-600 mt-1">
+                              Required to approve. Shown to the venue as real spend from PullUp customers.
+                            </p>
+                          </div>
                         )}
                         {status === 'pending_review' && (
                           <div className="mt-3 flex gap-2">
