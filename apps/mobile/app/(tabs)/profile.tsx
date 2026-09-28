@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, Pressable, Alert } from "react-native";
+import { View, Text, StyleSheet, Pressable, Alert, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useAuth } from "../../lib/auth";
@@ -25,7 +25,7 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={["bottom"]}>
-      <View style={styles.content}>
+      <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.avatarContainer}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>
@@ -119,12 +119,17 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
 
-        <Pressable style={styles.signOutButton} onPress={handleSignOut}>
+        <Pressable
+          style={styles.signOutButton}
+          onPress={handleSignOut}
+          accessibilityRole="button"
+          accessibilityLabel="Sign out"
+        >
           <Text style={styles.signOutText}>Sign Out</Text>
         </Pressable>
 
         <Text style={styles.version}>PullUp v1.0.0</Text>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -135,8 +140,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8F9FA",
   },
   content: {
-    flex: 1,
+    flexGrow: 1,
     padding: 24,
+    paddingBottom: 40,
   },
   avatarContainer: {
     alignItems: "center",
