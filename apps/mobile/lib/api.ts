@@ -244,8 +244,15 @@ export async function claimDeal(
       },
     });
 
-    if (error) return { data: null, error: error.message };
-    return { data: data as DealClaim, error: null };
+    if (error) {
+      // Show the function's reason, e.g. "Daily cap reached for this deal".
+      const body = await (error as { context?: Response }).context?.json?.().catch(() => null);
+      return { data: null, error: body?.error ?? error.message };
+    }
+    // claim-deal responds with { claim, deal }.
+    const claim = (data?.claim ?? data) as DealClaim;
+    if (!claim?.id) return { data: null, error: "Claim was created but couldn't be opened. Check your Claims tab." };
+    return { data: claim, error: null };
   } catch (err) {
     return { data: null, error: "Failed to claim deal" };
   }

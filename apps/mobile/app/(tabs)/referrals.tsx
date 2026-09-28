@@ -118,7 +118,7 @@ export default function DriverCodeScreen() {
           <View
             style={styles.riderCard}
             accessible
-            accessibilityLabel={`${item.rider_display_name}, ${item.completed_visits} completed visits, earned $${item.earned.toFixed(2)}`}
+            accessibilityLabel={`${item.rider_display_name}, ${item.completed_visits} visits, earned ${item.earned.toFixed(2)}`}
           >
             <View style={styles.riderAvatar} importantForAccessibility="no-hide-descendants">
               <Text style={styles.riderAvatarText}>
@@ -133,8 +133,8 @@ export default function DriverCodeScreen() {
             <View style={styles.riderInfo}>
               <Text style={styles.riderName}>{item.rider_display_name}</Text>
               <Text style={styles.riderMeta}>
-                {item.completed_visits} of {item.rides} ride{item.rides === 1 ? "" : "s"} completed · last{" "}
-                {new Date(item.last_ride_at).toLocaleDateString()}
+                {item.completed_visits} visit{item.completed_visits === 1 ? "" : "s"} · last{" "}
+                {new Date(item.last_ride_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
               </Text>
             </View>
             <View style={styles.earnedBadge}>

@@ -67,7 +67,7 @@ export default function ScanScreen() {
       const code = parseDriverCode(scanResult.data);
       if (!code) {
         setErrorMessage(
-          "That isn't a PullUp driver code. Ask your driver to open the Driver code tab in their app."
+          "That isn't a PullUp driver code. Ask your driver to open the "My code" tab in their app."
         );
         setOverlay("error");
         isProcessingRef.current = false;
