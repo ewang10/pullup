@@ -409,7 +409,19 @@ export async function fetchDriverStats(): Promise<ApiResult<DriverStats>> {
     const { data, error } = await supabase.rpc("get_driver_stats");
 
     if (error) return { data: null, error: error.message };
-    return { data: data as DriverStats, error: null };
+    // The RPC RETURNS TABLE, so PostgREST sends a one-row array.
+    const row = (Array.isArray(data) ? data[0] : data) as Partial<DriverStats> | undefined;
+    if (!row) return { data: null, error: "No driver stats found" };
+    return {
+      data: {
+        ...row,
+        total_referrals: Number(row.total_referrals ?? 0),
+        total_earnings: Number(row.total_earnings ?? 0),
+        payout_balance: Number(row.payout_balance ?? 0),
+        completed_claims: Number(row.completed_claims ?? 0),
+      } as DriverStats,
+      error: null,
+    };
   } catch (err) {
     return { data: null, error: "Failed to fetch driver stats" };
   }
