@@ -106,12 +106,22 @@ export default function TryMobilePage() {
         {APPETIZE_URL && (
           <section className="card" aria-labelledby="browser-heading">
             <h2 id="browser-heading" className="text-xl font-semibold text-gray-900">Try it in your browser</h2>
-            <p className="text-gray-600 mt-1 mb-4">
-              A real phone running PullUp, streamed to this page. Click to start; it may take a few seconds to load.
+            <p className="text-gray-700 mt-1">
+              Run PullUp on a simulated iPhone, streamed to your browser. Works on any computer or phone, with
+              nothing to install. It opens in a new tab; tap &ldquo;Tap to Start&rdquo; and give it a moment to load.
             </p>
-            <div className="mx-auto w-full max-w-[380px] aspect-[9/19] overflow-hidden rounded-2xl border border-gray-200 bg-gray-100">
-              <iframe src={APPETIZE_URL} title="PullUp app running in a browser-based phone emulator" className="h-full w-full" />
-            </div>
+            <a
+              href={APPETIZE_URL.replace('/embed/', '/app/')}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-primary inline-block mt-4"
+            >
+              Launch the app in your browser<span className="sr-only"> (opens in a new tab)</span>
+            </a>
+            <p className="text-sm text-gray-600 mt-3">
+              Location is simulated, so you&apos;ll see the demo venue. Scanning a venue&apos;s QR code needs a real
+              camera and won&apos;t work here. Sessions are time-limited.
+            </p>
           </section>
         )}
 
