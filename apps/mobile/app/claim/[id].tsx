@@ -26,7 +26,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { fetchMyClaims, cancelClaim, uploadReceipt, linkDriver } from "../../lib/api";
 import type { DealClaimWithDeal, ClaimStatus } from "@pullup/shared";
-import { CLAIM_STATUSES, parseDriverCode } from "@pullup/shared";
+import { CLAIM_STATUSES, parseDriverCode, type ReceiptType } from "@pullup/shared";
 
 // ── Countdown hook ───────────────────────────────────────────
 
@@ -249,6 +249,7 @@ export default function ClaimDetailScreen() {
   const [driverError, setDriverError] = useState<string | null>(null);
   const [linkingDriver, setLinkingDriver] = useState(false);
   const [linkedDriverName, setLinkedDriverName] = useState<string | null>(null);
+  const [uploadingType, setUploadingType] = useState<ReceiptType | null>(null);
 
   const { timeLeft, isExpired } = useCountdown(claim?.expires_at);
 
@@ -323,14 +324,14 @@ export default function ClaimDetailScreen() {
   };
 
   /** Open the image picker and upload the selected receipt. */
-  const handleUploadReceipt = async () => {
+  const handleUploadReceipt = async (type: ReceiptType) => {
     if (!claim) return;
 
     const permResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permResult.granted) {
       Alert.alert(
         "Permission Required",
-        "PullUp needs access to your photos to upload a ride receipt."
+        "PullUp needs access to your photos to upload a receipt."
       );
       return;
     }
@@ -343,15 +344,15 @@ export default function ClaimDetailScreen() {
 
     if (pickerResult.canceled || pickerResult.assets.length === 0) return;
 
-    setActionLoading(true);
+    setUploadingType(type);
     const imageUri = pickerResult.assets[0].uri;
-    const { data, error: err } = await uploadReceipt(claim.id, imageUri);
-    setActionLoading(false);
+    const { error: err } = await uploadReceipt(claim.id, imageUri, type);
+    setUploadingType(null);
 
     if (err) {
-      Alert.alert("Upload Failed", err);
+      Alert.alert("Upload failed", err);
     } else {
-      Alert.alert("Receipt Uploaded", "Your ride receipt has been submitted for review.");
+      Alert.alert("Receipt submitted", "Our team will review it, usually within a day.");
       await loadClaim();
     }
   };
@@ -429,7 +430,27 @@ export default function ClaimDetailScreen() {
   const isReserved = claim.status === CLAIM_STATUSES.RESERVED;
   const isCompleted = claim.status === CLAIM_STATUSES.COMPLETED;
   const isCancelled = claim.status === CLAIM_STATUSES.CANCELLED;
-  const hasReceipt = !!claim.ride_receipt_url;
+  const requiredReceipts: { type: ReceiptType; label: string; help: string; url: string | null; status: string | null }[] = [
+    ...(claim.deal.requires_ride_receipt
+      ? [{
+          type: "ride" as const,
+          label: "Ride receipt",
+          help: "Your Uber or Lyft receipt for the trip here",
+          url: claim.ride_receipt_url,
+          status: claim.ride_receipt_status,
+        }]
+      : []),
+    ...(claim.deal.requires_venue_receipt
+      ? [{
+          type: "venue" as const,
+          label: "Venue receipt",
+          help: "Your bill from the venue",
+          url: claim.venue_receipt_url,
+          status: claim.venue_receipt_status,
+        }]
+      : []),
+  ];
+  const allReceiptsApproved = requiredReceipts.every((r) => r.status === "approved");
 
   return (
     <View style={styles.container}>
@@ -558,6 +579,55 @@ export default function ClaimDetailScreen() {
           </View>
         ) : null}
 
+        {/* Receipts: only after check-in, only what this deal requires */}
+        {isCompleted && requiredReceipts.length > 0 && (
+          <View style={styles.card}>
+            <Text style={styles.driverTitle} accessibilityRole="header">Receipts needed</Text>
+            <Text style={styles.driverText}>
+              {allReceiptsApproved
+                ? "All receipts approved. Your ride credit has been added."
+                : `Upload ${requiredReceipts.length === 1 ? "this receipt" : "these receipts"} to get your ${claim.deal.ride_credit_amount} ride credit. We release it once ${requiredReceipts.length === 1 ? "it's" : "they're"} approved.`}
+            </Text>
+            {requiredReceipts.map((r) => {
+              const status = r.status ?? (r.url ? "pending_review" : "missing");
+              const meta = RECEIPT_STATUS[status];
+              const canUpload = status === "missing" || status === "rejected";
+              return (
+                <View key={r.type} style={styles.receiptRow}>
+                  <View style={styles.receiptInfo}>
+                    <Text style={styles.receiptName}>{r.label}</Text>
+                    <Text style={styles.receiptHelp}>{r.help}</Text>
+                    <View style={[styles.receiptBadge, { backgroundColor: meta.bg }]}>
+                      <Text style={[styles.receiptBadgeText, { color: meta.text }]}>{meta.label}</Text>
+                    </View>
+                    {status === "rejected" && (
+                      <Text style={styles.receiptRejected}>
+                        We couldn&apos;t accept this photo. Please upload a clear photo showing the date and total.
+                      </Text>
+                    )}
+                  </View>
+                  {canUpload && (
+                    <Pressable
+                      style={[styles.receiptButton, uploadingType !== null && styles.buttonDisabled]}
+                      onPress={() => handleUploadReceipt(r.type)}
+                      disabled={uploadingType !== null}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${status === "rejected" ? "Upload a new" : "Upload"} ${r.label.toLowerCase()}`}
+                      accessibilityState={{ busy: uploadingType === r.type }}
+                    >
+                      {uploadingType === r.type ? (
+                        <ActivityIndicator color="#FFFFFF" accessibilityLabel="Uploading" />
+                      ) : (
+                        <Text style={styles.receiptButtonText}>{status === "rejected" ? "Re-upload" : "Upload"}</Text>
+                      )}
+                    </Pressable>
+                  )}
+                </View>
+              );
+            })}
+          </View>
+        )}
+
         {/* Details grid */}
         <View style={styles.detailsGrid}>
           <View style={styles.detailItem}>
@@ -576,9 +646,9 @@ export default function ClaimDetailScreen() {
             </Text>
           </View>
           <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>Receipt</Text>
+            <Text style={styles.detailLabel}>Receipts</Text>
             <Text style={styles.detailValue}>
-              {hasReceipt ? "Uploaded" : "Pending"}
+              {requiredReceipts.length === 0 ? "Not needed" : allReceiptsApproved ? "Approved" : "Needed"}
             </Text>
           </View>
           <View style={styles.detailItem}>
@@ -604,26 +674,14 @@ export default function ClaimDetailScreen() {
             />
           ) : (
             <>
-              <View style={styles.actionRow}>
-                <Pressable
-                  style={styles.primaryButton}
-                  onPress={handleScanQR}
-                  accessibilityLabel="Scan venue QR code to verify visit"
-                  accessibilityRole="button"
-                >
-                  <Text style={styles.primaryButtonText}>Scan QR</Text>
-                </Pressable>
-                <Pressable
-                  style={styles.secondaryButton}
-                  onPress={handleUploadReceipt}
-                  accessibilityLabel="Upload ride receipt image"
-                  accessibilityRole="button"
-                >
-                  <Text style={styles.secondaryButtonText}>
-                    Upload Receipt
-                  </Text>
-                </Pressable>
-              </View>
+              <Pressable
+                style={styles.primaryButtonFull}
+                onPress={handleScanQR}
+                accessibilityLabel="Check in by scanning the venue's QR code"
+                accessibilityRole="button"
+              >
+                <Text style={styles.primaryButtonText}>Check in: scan venue QR</Text>
+              </Pressable>
               <Pressable
                 style={styles.cancelClaimButton}
                 onPress={handleCancel}
@@ -637,34 +695,72 @@ export default function ClaimDetailScreen() {
         </View>
       )}
 
-      {/* Upload receipt for completed claims that don't have one yet */}
-      {isCompleted && !hasReceipt && (
-        <View style={styles.bottomBar}>
-          {actionLoading ? (
-            <ActivityIndicator
-              size="large"
-              color="#5B53EE"
-              accessibilityLabel="Uploading receipt"
-            />
-          ) : (
-            <Pressable
-              style={styles.primaryButtonFull}
-              onPress={handleUploadReceipt}
-              accessibilityLabel="Upload ride receipt image"
-              accessibilityRole="button"
-            >
-              <Text style={styles.primaryButtonText}>Upload Receipt</Text>
-            </Pressable>
-          )}
-        </View>
-      )}
     </View>
   );
 }
 
 // ── Styles ───────────────────────────────────────────────────
 
+const RECEIPT_STATUS: Record<string, { label: string; bg: string; text: string }> = {
+  missing: { label: "Not uploaded", bg: "#F3F4F6", text: "#1F2937" },
+  pending_review: { label: "Waiting for review", bg: "#FEF3C7", text: "#92400E" },
+  approved: { label: "Approved", bg: "#DCFCE7", text: "#166534" },
+  rejected: { label: "Rejected", bg: "#FEE2E2", text: "#991B1B" },
+};
+
 const styles = StyleSheet.create({
+  receiptRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#E5E7EB",
+  },
+  receiptInfo: {
+    flex: 1,
+    gap: 4,
+  },
+  receiptName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1A1A2E",
+  },
+  receiptHelp: {
+    fontSize: 14,
+    color: "#4B5563",
+  },
+  receiptBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+    marginTop: 4,
+  },
+  receiptBadgeText: {
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  receiptRejected: {
+    fontSize: 14,
+    color: "#991B1B",
+    marginTop: 4,
+  },
+  receiptButton: {
+    minHeight: 44,
+    minWidth: 96,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    backgroundColor: "#5B53EE",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  receiptButtonText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "600",
+  },
   driverTitle: {
     fontSize: 16,
     fontWeight: "700",
@@ -917,10 +1013,6 @@ const styles = StyleSheet.create({
     borderTopColor: "#E5E7EB",
     gap: 10,
   },
-  actionRow: {
-    flexDirection: "row",
-    gap: 10,
-  },
   primaryButton: {
     flex: 1,
     backgroundColor: "#5B53EE",
@@ -946,18 +1038,6 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-  },
-  secondaryButton: {
-    flex: 1,
-    backgroundColor: "#F0EFFF",
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: "center",
-  },
-  secondaryButtonText: {
-    color: "#5B53EE",
     fontSize: 16,
     fontWeight: "700",
   },

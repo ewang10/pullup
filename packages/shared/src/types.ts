@@ -65,9 +65,30 @@ export interface DriverProfile {
   stripe_account_id: string | null;
   /** Whether the driver has completed identity verification */
   is_verified: boolean;
+  /** Staff review outcome; drivers can only use the app once approved */
+  verification_status: DriverVerificationStatus;
+  /** Reason shown to the driver when staff reject the application */
+  verification_note: string | null;
+  /** ISO-8601 timestamp of the latest staff review */
+  reviewed_at: string | null;
+  /** Rideshare platform given at sign-up, checked by staff */
+  rideshare_platform: RidesharePlatform | null;
+  /** Driver's ID on that platform, checked by staff */
+  rideshare_driver_id: string | null;
   /** ISO-8601 timestamp of profile creation */
   created_at: string;
 }
+
+export type DriverVerificationStatus = 'pending' | 'approved' | 'rejected';
+
+export type RidesharePlatform = 'uber' | 'lyft' | 'both' | 'other';
+
+export const RIDESHARE_PLATFORMS: { value: RidesharePlatform; label: string }[] = [
+  { value: 'uber', label: 'Uber' },
+  { value: 'lyft', label: 'Lyft' },
+  { value: 'both', label: 'Both' },
+  { value: 'other', label: 'Other' },
+];
 
 /** Row type for venues table. Represents a business venue that offers deals. */
 export interface Venue {
@@ -125,6 +146,10 @@ export interface Deal {
   daily_cap: number;
   /** Minutes a reservation is held before it expires */
   hold_duration_minutes: number;
+  /** Rider must upload their rideshare receipt after the visit */
+  requires_ride_receipt: boolean;
+  /** Rider must upload the venue bill after the visit */
+  requires_venue_receipt: boolean;
   /** Whether the deal is currently active and claimable */
   is_active: boolean;
   /** ISO-8601 timestamp of deal creation */
@@ -149,10 +174,16 @@ export interface DealClaim {
   expires_at: string;
   /** ISO-8601 timestamp when the claim was completed, if applicable */
   completed_at: string | null;
-  /** URL to the uploaded ride receipt image */
+  /** Storage path (legacy rows: public URL) of the uploaded ride receipt */
   ride_receipt_url: string | null;
   /** Whether the ride receipt has been verified */
   ride_receipt_verified: boolean;
+  /** Staff review state of the ride receipt; null until uploaded */
+  ride_receipt_status: ReceiptReviewStatus | null;
+  /** Storage path of the uploaded venue receipt (the bill) */
+  venue_receipt_url: string | null;
+  /** Staff review state of the venue receipt; null until uploaded */
+  venue_receipt_status: ReceiptReviewStatus | null;
   /** Whether the ride credit has been paid to the rider */
   ride_credit_paid: boolean;
   /** Whether the driver kickback has been paid */
@@ -296,3 +327,5 @@ export interface VerifyQRRequest {
   /** The claim being verified */
   claim_id: string;
 }
+
+export type ReceiptReviewStatus = 'pending_review' | 'approved' | 'rejected';

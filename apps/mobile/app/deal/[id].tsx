@@ -158,6 +158,15 @@ export default function DealDetailScreen() {
               <Text style={styles.rideCreditText}>
                 Get ${deal.ride_credit_amount} ride credit!
               </Text>
+              {(deal.requires_ride_receipt || deal.requires_venue_receipt) && (
+                <Text style={styles.receiptNote}>
+                  {deal.requires_ride_receipt && deal.requires_venue_receipt
+                    ? "Keep your ride receipt and your bill. You'll upload both after you check in."
+                    : deal.requires_ride_receipt
+                    ? "Keep your Uber or Lyft receipt. You'll upload it after you check in."
+                    : "Keep your bill. You'll upload it after you check in."}
+                </Text>
+              )}
             </View>
           )}
 
@@ -303,6 +312,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     marginBottom: 20,
+  },
+  receiptNote: {
+    color: "#065F46",
+    fontSize: 14,
+    textAlign: "center",
+    marginTop: 4,
   },
   rideCreditText: {
     color: "#047857",

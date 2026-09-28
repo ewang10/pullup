@@ -26,6 +26,8 @@ import {
   PASSWORD_MIN_LENGTH,
   PASSWORD_REQUIREMENTS_TEXT,
   validatePassword,
+  RIDESHARE_PLATFORMS,
+  type RidesharePlatform,
 } from "@pullup/shared";
 
 export default function SignUpScreen() {
@@ -36,6 +38,10 @@ export default function SignUpScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<UserRole>("rider");
+  // Drivers: details staff use to verify they actively drive for a rideshare company.
+  const [phone, setPhone] = useState("");
+  const [platform, setPlatform] = useState<RidesharePlatform | null>(null);
+  const [driverId, setDriverId] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,6 +55,16 @@ export default function SignUpScreen() {
       setError(passwordError);
       return;
     }
+    if (role === "driver") {
+      if (phone.replace(/\D/g, "").length < 10) {
+        setError("Enter your mobile number so we can reach you about your application.");
+        return;
+      }
+      if (!platform || !driverId.trim()) {
+        setError("Choose your rideshare platform and enter your driver ID so we can verify you.");
+        return;
+      }
+    }
 
     setLoading(true);
     setError(null);
@@ -58,12 +74,19 @@ export default function SignUpScreen() {
       password,
       fullName: fullName.trim(),
       role,
+      ...(role === "driver"
+        ? { phone: phone.trim(), ridesharePlatform: platform!, rideshareDriverId: driverId.trim() }
+        : {}),
     });
 
     setLoading(false);
 
     if (signUpError) {
-      setError(signUpError);
+      setError(
+        /users_phone/.test(signUpError)
+          ? "That phone number is already used by another account."
+          : signUpError
+      );
     }
   };
 
@@ -196,6 +219,66 @@ export default function SignUpScreen() {
               </View>
             </View>
 
+            {role === "driver" && (
+              <View style={styles.driverSection}>
+                <Text style={styles.driverIntro}>
+                  We verify every driver before they can earn bonuses. Our team checks these details, usually within
+                  1–2 business days.
+                </Text>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Mobile number</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={phone}
+                    onChangeText={setPhone}
+                    placeholder="(916) 555-0123"
+                    placeholderTextColor="#6B7280"
+                    keyboardType="phone-pad"
+                    autoComplete="tel"
+                    textContentType="telephoneNumber"
+                    editable={!loading}
+                    accessibilityLabel="Mobile number"
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label} nativeID="platform-label">
+                    Which rideshare app do you drive for?
+                  </Text>
+                  <View style={styles.chipRow} accessibilityRole="radiogroup" accessibilityLabelledBy="platform-label">
+                    {RIDESHARE_PLATFORMS.map((p) => (
+                      <Pressable
+                        key={p.value}
+                        onPress={() => setPlatform(p.value)}
+                        style={[styles.chip, platform === p.value && styles.chipActive]}
+                        accessibilityRole="radio"
+                        accessibilityState={{ checked: platform === p.value }}
+                        accessibilityLabel={p.label}
+                      >
+                        <Text style={[styles.chipText, platform === p.value && styles.chipTextActive]}>{p.label}</Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.label}>Your driver ID on that app</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={driverId}
+                    onChangeText={setDriverId}
+                    placeholder="Found in your driver app's profile"
+                    placeholderTextColor="#6B7280"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    editable={!loading}
+                    accessibilityLabel="Rideshare driver ID"
+                  />
+                </View>
+              </View>
+            )}
+
             <Pressable
               style={[styles.button, loading && styles.buttonDisabled]}
               onPress={handleSignUp}
@@ -295,6 +378,45 @@ const styles = StyleSheet.create({
     color: "#1A1A2E",
     borderWidth: 1,
     borderColor: "#6B7280",
+  },
+  driverSection: {
+    gap: 16,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    padding: 16,
+  },
+  driverIntro: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#374151",
+  },
+  chipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  chip: {
+    minHeight: 44,
+    paddingHorizontal: 16,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: "#6B7280",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF",
+  },
+  chipActive: {
+    borderColor: "#5B53EE",
+    backgroundColor: "#F0EFFF",
+  },
+  chipText: {
+    fontSize: 15,
+    color: "#1A1A2E",
+  },
+  chipTextActive: {
+    color: "#3F37C9",
+    fontWeight: "600",
   },
   roleRow: {
     flexDirection: "row",

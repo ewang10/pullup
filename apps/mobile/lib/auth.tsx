@@ -20,7 +20,7 @@ import React, {
 } from "react";
 import { Session, User as SupabaseUser } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
-import type { User, UserRole, DriverProfile } from "@pullup/shared";
+import type { User, UserRole, DriverProfile, RidesharePlatform } from "@pullup/shared";
 
 export type { UserRole };
 
@@ -54,6 +54,9 @@ interface AuthContextValue {
     password: string;
     fullName: string;
     role: UserRole;
+    phone?: string;
+    ridesharePlatform?: RidesharePlatform;
+    rideshareDriverId?: string;
   }) => Promise<{ error: string | null }>;
   /** Sign out and clear all local auth state. */
   signOut: () => Promise<void>;
@@ -153,6 +156,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     password: string;
     fullName: string;
     role: UserRole;
+    phone?: string;
+    ridesharePlatform?: RidesharePlatform;
+    rideshareDriverId?: string;
   }): Promise<{ error: string | null }> => {
     const { error } = await supabase.auth.signUp({
       email: params.email,
@@ -161,6 +167,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         data: {
           full_name: params.fullName,
           role: params.role,
+          // Read by the handle_new_user trigger for driver verification.
+          ...(params.phone ? { phone: params.phone } : {}),
+          ...(params.ridesharePlatform ? { rideshare_platform: params.ridesharePlatform } : {}),
+          ...(params.rideshareDriverId ? { rideshare_driver_id: params.rideshareDriverId } : {}),
         },
       },
     });

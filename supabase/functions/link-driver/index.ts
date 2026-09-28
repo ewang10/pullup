@@ -86,13 +86,21 @@ serve(async (req) => {
     // Look up driver by referral code (case-insensitive) using admin client to bypass RLS
     const { data: driverProfile, error: driverError } = await adminSupabase
       .from('driver_profiles')
-      .select('id, user_id')
+      .select('id, user_id, verification_status')
       .ilike('referral_code', referral_code)
       .single();
 
     if (driverError || !driverProfile) {
       return new Response(JSON.stringify({ error: 'Driver not found for this referral code' }), {
         status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Only staff-approved drivers can earn bonuses.
+    if (driverProfile.verification_status !== 'approved') {
+      return new Response(JSON.stringify({ error: "This driver's account isn't verified yet, so their code can't be added." }), {
+        status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }

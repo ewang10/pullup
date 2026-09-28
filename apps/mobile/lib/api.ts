@@ -10,6 +10,7 @@
  */
 
 import { supabase } from "./supabase";
+import { RECEIPTS_BUCKET, receiptObjectPath, type ReceiptType } from "@pullup/shared";
 import type {
   DealWithSlots,
   DealWithVenue,
@@ -61,6 +62,9 @@ function toDealWithSlots(row: NearbyDealRow): DealWithSlots {
     platform_fee_amount: Number(row.platform_fee_amount),
     daily_cap: row.daily_cap,
     hold_duration_minutes: row.hold_duration_minutes,
+    // Not returned by the RPC; the claim screen reads them from the deal itself.
+    requires_ride_receipt: false,
+    requires_venue_receipt: false,
     is_active: true,
     created_at: row.deal_created_at,
     distance_miles: Number(row.distance_miles),
@@ -342,48 +346,41 @@ export async function linkDriver(
 }
 
 /**
- * Upload a ride receipt image and link it to a claim.
+ * Upload a receipt photo for a completed visit and submit it for staff review.
  *
- * 1. Uploads the image to the `receipts` storage bucket.
- * 2. Retrieves the public URL for the uploaded file.
- * 3. Updates the `deal_claims.ride_receipt_url` column.
+ * Receipts are private: the image goes to receipts/<claim_id>/<type>-<time>.jpg
+ * and the claim stores that storage path with status "pending_review".
+ * Uploading again after a rejection replaces the photo and resubmits it.
  *
- * @param claimId - UUID of the claim to attach the receipt to.
- * @param imageUri - Local file URI of the receipt image.
- * @returns The public URL of the uploaded receipt, or an error.
+ * @param type - "ride" (rideshare trip receipt) or "venue" (the bill).
  */
 export async function uploadReceipt(
   claimId: string,
-  imageUri: string
-): Promise<ApiResult<{ ride_receipt_url: string }>> {
+  imageUri: string,
+  type: ReceiptType
+): Promise<ApiResult<{ path: string }>> {
   try {
-    const fileName = `receipts/${claimId}/${Date.now()}.jpg`;
+    const path = receiptObjectPath(claimId, `${type}-${Date.now()}.jpg`);
 
     const response = await fetch(imageUri);
-    const blob = await response.blob();
-    const arrayBuffer = await new Response(blob).arrayBuffer();
+    const arrayBuffer = await response.arrayBuffer();
 
     const { error: uploadError } = await supabase.storage
-      .from("receipts")
-      .upload(fileName, arrayBuffer, {
-        contentType: "image/jpeg",
-        upsert: true,
-      });
-
+      .from(RECEIPTS_BUCKET)
+      .upload(path, arrayBuffer, { contentType: "image/jpeg", upsert: false });
     if (uploadError) return { data: null, error: uploadError.message };
-
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from("receipts").getPublicUrl(fileName);
 
     const { error: updateError } = await supabase
       .from("deal_claims")
-      .update({ ride_receipt_url: publicUrl })
+      .update(
+        type === "ride"
+          ? { ride_receipt_url: path, ride_receipt_status: "pending_review" }
+          : { venue_receipt_url: path, venue_receipt_status: "pending_review" }
+      )
       .eq("id", claimId);
-
     if (updateError) return { data: null, error: updateError.message };
 
-    return { data: { ride_receipt_url: publicUrl }, error: null };
+    return { data: { path }, error: null };
   } catch (err) {
     return { data: null, error: "Failed to upload receipt" };
   }

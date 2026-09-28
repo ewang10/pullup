@@ -14,11 +14,29 @@ import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createSupabaseBrowserClient } from '@/lib/supabase-client';
+import { homeForRole } from '@/lib/roles';
 
-// Public portfolio demo credentials. Set only on the demo deployment; the
-// banner is hidden when either is missing.
-const DEMO_EMAIL = process.env.NEXT_PUBLIC_DEMO_EMAIL;
-const DEMO_PASSWORD = process.env.NEXT_PUBLIC_DEMO_PASSWORD;
+// Public portfolio demo credentials. Set only on the demo deployment; each
+// account shows only when both its email and password are set.
+const DEMO_ACCOUNTS = [
+  {
+    key: 'venue',
+    label: 'Venue owner',
+    description: 'A sample café with 30 days of deals, visits and charges.',
+    email: process.env.NEXT_PUBLIC_DEMO_EMAIL,
+    password: process.env.NEXT_PUBLIC_DEMO_PASSWORD,
+  },
+  {
+    key: 'staff',
+    label: 'PullUp staff',
+    description: 'Approve new drivers and review ride and venue receipts.',
+    email: process.env.NEXT_PUBLIC_DEMO_STAFF_EMAIL,
+    password: process.env.NEXT_PUBLIC_DEMO_STAFF_PASSWORD,
+  },
+].filter((a): a is typeof a & { email: string; password: string } => Boolean(a.email && a.password));
+
+const UNAUTHORIZED_MESSAGE =
+  'This site is for venue owners and PullUp staff. Riders and drivers use the mobile app.';
 
 function LoginForm() {
   const router = useRouter();
@@ -32,7 +50,7 @@ function LoginForm() {
   // Surface the unauthorized error set by middleware redirect
   useEffect(() => {
     if (searchParams?.get('error') === 'unauthorized') {
-      setError('This dashboard is for venue administrators only.');
+      setError(UNAUTHORIZED_MESSAGE);
     }
   }, [searchParams]);
 
@@ -52,15 +70,15 @@ function LoginForm() {
         return;
       }
 
-      // Verify the user holds the venue_admin role
-      const role = data.user?.user_metadata?.role;
-      if (role !== 'venue_admin') {
+      // Venue admins go to the dashboard, staff to the review area.
+      const home = homeForRole(data.user?.user_metadata?.role);
+      if (!home) {
         await supabase.auth.signOut();
-        setError('This dashboard is for venue administrators only.');
+        setError(UNAUTHORIZED_MESSAGE);
         return;
       }
 
-      router.push('/dashboard');
+      router.push(home);
       router.refresh();
     } catch {
       setError('An unexpected error occurred');
@@ -73,28 +91,34 @@ function LoginForm() {
     <div>
       <h2 className="text-2xl font-bold text-gray-900 mb-6">Sign in to your account</h2>
 
-      {DEMO_EMAIL && DEMO_PASSWORD && (
-        <div className="mb-6 p-4 bg-indigo-50 border border-indigo-200 rounded-lg text-sm">
-          <p className="font-medium text-gray-900">Just looking around?</p>
-          <p className="mt-1 text-gray-600">
-            Explore a sample venue with 30 days of demo data.
-          </p>
-          <p className="mt-2 text-gray-700 break-all">
-            <span className="text-gray-600">Email:</span> {DEMO_EMAIL}
-            <br />
-            <span className="text-gray-600">Password:</span> {DEMO_PASSWORD}
-          </p>
-          <button
-            type="button"
-            onClick={() => {
-              setEmail(DEMO_EMAIL);
-              setPassword(DEMO_PASSWORD);
-            }}
-            className="mt-3 text-primary font-medium hover:text-primary-600"
-          >
-            Fill in demo login →
-          </button>
-        </div>
+      {DEMO_ACCOUNTS.length > 0 && (
+        <section className="mb-6 p-4 bg-indigo-50 border border-indigo-200 rounded-lg text-sm" aria-labelledby="demo-heading">
+          <h3 id="demo-heading" className="font-medium text-gray-900">Just looking around?</h3>
+          <p className="mt-1 text-gray-700">Try a demo account. The password is shown so anyone can sign in.</p>
+          <ul className="mt-3 space-y-3">
+            {DEMO_ACCOUNTS.map((a) => (
+              <li key={a.key} className="rounded-md bg-white border border-indigo-100 p-3">
+                <p className="font-medium text-gray-900">{a.label}</p>
+                <p className="text-gray-700">{a.description}</p>
+                <p className="mt-1 text-gray-700 break-all">
+                  <span className="text-gray-600">Email:</span> {a.email}
+                  <br />
+                  <span className="text-gray-600">Password:</span> {a.password}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEmail(a.email);
+                    setPassword(a.password);
+                  }}
+                  className="mt-2 text-primary font-medium hover:text-primary-600"
+                >
+                  Fill in {a.label.toLowerCase()} login →
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       {error && (

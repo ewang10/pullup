@@ -16,6 +16,7 @@
  *   DEMO_EMAIL  (default: pullup.demo.app@gmail.com)
  *   DEMO_RIDER_EMAIL   (default: pullup.demo.app+rider@gmail.com)
  *   DEMO_DRIVER_EMAIL  (default: pullup.demo.app+driver@gmail.com)
+ *   DEMO_STAFF_EMAIL   (default: pullup.demo.app+staff@gmail.com)
  */
 
 import { CLAIM_COST_MIN, calculateClaimCosts } from "../packages/shared/src/constants.ts";
@@ -26,6 +27,7 @@ const DEMO_EMAIL = process.env.DEMO_EMAIL || 'pullup.demo.app@gmail.com';
 const DEMO_RIDER_DOMAIN = 'demo.pullup.example.com';
 const DEMO_RIDER_EMAIL = process.env.DEMO_RIDER_EMAIL || 'pullup.demo.app+rider@gmail.com';
 const DEMO_DRIVER_EMAIL = process.env.DEMO_DRIVER_EMAIL || 'pullup.demo.app+driver@gmail.com';
+const DEMO_STAFF_EMAIL = process.env.DEMO_STAFF_EMAIL || 'pullup.demo.app+staff@gmail.com';
 // Sample riders whose claims the demo driver is linked to (plus the demo rider).
 const REFERRED_SAMPLE_RIDERS = 5;
 // Driver bonuses newer than this stay unpaid, so the driver has a balance.
@@ -66,13 +68,122 @@ const RIDER_NAMES = [
 
 const DEALS = [
   { title: 'Free appetizer with any entrée', description: 'Show your PullUp pass to your server to get a free starter.', discount_type: 'fixed_amount', discount_value: 12, cost_per_claim: 12, daily_cap: 20, requires_ride_receipt: true, weight: 4 },
-  { title: '20% off your bill', description: 'Valid for dine-in parties of up to 4.', discount_type: 'percentage', discount_value: 20, cost_per_claim: 15, daily_cap: 30, requires_ride_receipt: true, weight: 5 },
+  { title: '20% off your bill', description: 'Valid for dine-in parties of up to 4.', discount_type: 'percentage', discount_value: 20, cost_per_claim: 15, daily_cap: 30, requires_ride_receipt: true, requires_venue_receipt: true, weight: 5 },
   { title: 'Happy hour: $5 off drinks', description: 'Weekdays 4–7pm. Must be 21+.', discount_type: 'fixed_amount', discount_value: 5, cost_per_claim: 10, daily_cap: 25, requires_ride_receipt: false, weight: 3 },
   { title: 'Weekend brunch: 15% off', description: 'Saturdays and Sundays, 9am–2pm.', discount_type: 'percentage', discount_value: 15, cost_per_claim: 12, daily_cap: 15, requires_ride_receipt: true, weight: 2, weekendOnly: true },
   { title: 'Late-night bites (paused)', description: 'Seasonal deal, currently paused.', discount_type: 'percentage', discount_value: 10, cost_per_claim: 10, daily_cap: 10, requires_ride_receipt: false, weight: 0, inactive: true },
 ];
 
+/** Supabase Auth admin API (service role). */
+async function authAdmin(path, { method = 'GET', body } = {}) {
+  const res = await fetch(`${URL}/auth/v1/admin/${path}`, {
+    method,
+    headers: { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const text = await res.text();
+  if (!res.ok) throw new Error(`${method} auth/${path} -> ${res.status}: ${text}`);
+  return text ? JSON.parse(text) : null;
+}
+
+/**
+ * Give the demo staff account the platform_support role, in both public.users
+ * (used by database checks) and auth user_metadata (used by the web app).
+ */
+async function ensureStaffAccount() {
+  const [staff] = await rest(`users?select=id,role&email=eq.${encodeURIComponent(DEMO_STAFF_EMAIL)}`);
+  if (!staff) {
+    console.log(`No demo staff account (${DEMO_STAFF_EMAIL}) yet; skipped.`);
+    return;
+  }
+  await rest(`users?id=eq.${staff.id}`, {
+    method: 'PATCH',
+    body: { role: 'platform_support', full_name: 'Demo Staff' },
+  });
+  const { user } = await authAdmin(`users/${staff.id}`).then((u) => ({ user: u }));
+  await authAdmin(`users/${staff.id}`, {
+    method: 'PUT',
+    body: { user_metadata: { ...(user.user_metadata || {}), role: 'platform_support', full_name: 'Demo Staff' } },
+  });
+  console.log('Demo staff: platform_support');
+}
+
+// Driver applications for the staff review page (sample users without logins).
+// Phone numbers use the reserved 555-01xx fictional range.
+const APPLICANTS = [
+  { name: 'Carlos Mendoza', phone: '+19165550141', platform: 'uber', driverId: 'UBR-4821-7730', status: 'pending', daysAgo: 1 },
+  { name: 'Tanya Brooks', phone: '+19165550142', platform: 'lyft', driverId: 'LYFT-88213', status: 'pending', daysAgo: 2 },
+  { name: 'Kevin Park', phone: '+19165550143', platform: 'both', driverId: 'UBR-5520-1184 / LYFT-60417', status: 'pending', daysAgo: 3 },
+  {
+    name: 'Jamal Wright', phone: '+19165550144', platform: 'uber', driverId: 'UBR-0000-0000', status: 'rejected', daysAgo: 6,
+    note: "We couldn't verify your rideshare driver ID. Please send a screenshot of your driver profile.",
+  },
+];
+
+// Illustrative receipt photos for the staff queue (generic, labeled as demo data).
+const SAMPLE_RECEIPTS = {
+  ride: [
+    { path: 'receipts/demo-samples/ride-1.svg', total: '14.82', from: 'Midtown', minutes: 11 },
+    { path: 'receipts/demo-samples/ride-2.svg', total: '9.47', from: 'East Sacramento', minutes: 8 },
+    { path: 'receipts/demo-samples/ride-3.svg', total: '18.30', from: 'Land Park', minutes: 15 },
+  ],
+  venue: [
+    { path: 'receipts/demo-samples/bill-1.svg', lines: [['Avocado toast', '13.50'], ['Cold brew', '5.25'], ['Seasonal salad', '12.00']], total: '33.83' },
+    { path: 'receipts/demo-samples/bill-2.svg', lines: [['Club sandwich', '14.00'], ['Iced latte', '5.75']], total: '21.64' },
+  ],
+};
+
+const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
+function rideReceiptSvg({ total, from, minutes }) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="360" height="480" viewBox="0 0 360 480">
+<rect width="360" height="480" fill="#fff"/><rect width="360" height="64" fill="#111827"/>
+<text x="24" y="40" font-family="Helvetica,Arial" font-size="20" fill="#fff" font-weight="700">Rideshare trip receipt</text>
+<text x="24" y="104" font-family="Helvetica,Arial" font-size="14" fill="#4b5563">Trip to</text>
+<text x="24" y="126" font-family="Helvetica,Arial" font-size="18" fill="#111827" font-weight="700">1 Demo Plaza, Sacramento</text>
+<text x="24" y="160" font-family="Helvetica,Arial" font-size="14" fill="#4b5563">From ${esc(from)} · ${minutes} min</text>
+<line x1="24" y1="190" x2="336" y2="190" stroke="#e5e7eb"/>
+<text x="24" y="226" font-family="Helvetica,Arial" font-size="16" fill="#111827">Trip fare</text>
+<text x="336" y="226" text-anchor="end" font-family="Helvetica,Arial" font-size="16" fill="#111827">${total}</text>
+<line x1="24" y1="250" x2="336" y2="250" stroke="#e5e7eb"/>
+<text x="24" y="290" font-family="Helvetica,Arial" font-size="20" fill="#111827" font-weight="700">Total</text>
+<text x="336" y="290" text-anchor="end" font-family="Helvetica,Arial" font-size="20" fill="#111827" font-weight="700">${total}</text>
+<text x="180" y="450" text-anchor="middle" font-family="Helvetica,Arial" font-size="12" fill="#6b7280">Sample receipt · PullUp demo data</text>
+</svg>`;
+}
+
+function billSvg({ lines, total }) {
+  const rows = lines
+    .map(([item, price], i) => `<text x="24" y="${150 + i * 30}" font-family="Courier New,monospace" font-size="16" fill="#111827">${esc(item)}</text><text x="336" y="${150 + i * 30}" text-anchor="end" font-family="Courier New,monospace" font-size="16" fill="#111827">${price}</text>`)
+    .join('');
+  const y = 150 + lines.length * 30;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="360" height="480" viewBox="0 0 360 480">
+<rect width="360" height="480" fill="#fffdf7"/>
+<text x="180" y="52" text-anchor="middle" font-family="Courier New,monospace" font-size="22" fill="#111827" font-weight="700">PullUp Demo Café</text>
+<text x="180" y="78" text-anchor="middle" font-family="Courier New,monospace" font-size="13" fill="#4b5563">1 Demo Plaza, Sacramento CA</text>
+<line x1="24" y1="110" x2="336" y2="110" stroke="#9ca3af" stroke-dasharray="4 4"/>
+${rows}
+<text x="24" y="${y + 10}" font-family="Courier New,monospace" font-size="14" fill="#4b5563">PullUp deal: 20% off</text>
+<line x1="24" y1="${y + 30}" x2="336" y2="${y + 30}" stroke="#9ca3af" stroke-dasharray="4 4"/>
+<text x="24" y="${y + 64}" font-family="Courier New,monospace" font-size="20" fill="#111827" font-weight="700">TOTAL</text>
+<text x="336" y="${y + 64}" text-anchor="end" font-family="Courier New,monospace" font-size="20" fill="#111827" font-weight="700">${total}</text>
+<text x="180" y="450" text-anchor="middle" font-family="Helvetica,Arial" font-size="12" fill="#6b7280">Sample receipt · PullUp demo data</text>
+</svg>`;
+}
+
+async function uploadSample(path, svg) {
+  // Object names include the receipts/ prefix inside the receipts bucket.
+  const res = await fetch(`${URL}/storage/v1/object/receipts/${path}`, {
+    method: 'POST',
+    headers: { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'image/svg+xml', 'x-upsert': 'true' },
+    body: svg,
+  });
+  if (!res.ok) throw new Error(`upload ${path} -> ${res.status}: ${await res.text()}`);
+}
+
 async function main() {
+  await ensureStaffAccount();
+
   const [owner] = await rest(`users?select=id&email=eq.${encodeURIComponent(DEMO_EMAIL)}`);
   if (!owner) throw new Error(`No user with email ${DEMO_EMAIL}. Sign up on the web dashboard first.`);
   const [venue] = await rest(`venues?select=id,name&owner_user_id=eq.${owner.id}`);
@@ -114,6 +225,36 @@ async function main() {
     })),
   });
 
+  // Driver applications waiting for staff (deleted with the sample riders above).
+  const t0 = Date.now();
+  const applicantUsers = await rest('users', {
+    method: 'POST',
+    prefer: 'return=representation',
+    body: APPLICANTS.map((a, i) => ({
+      email: `driver${i + 1}@${DEMO_RIDER_DOMAIN}`,
+      full_name: a.name,
+      role: 'driver',
+      phone: a.phone,
+    })),
+  });
+  await rest('driver_profiles', {
+    method: 'POST',
+    body: applicantUsers.map((u, i) => {
+      const a = APPLICANTS[i];
+      return {
+        user_id: u.id,
+        referral_code: `SAMPLE${'ABCD'[i]}${i + 2}`,
+        rideshare_platform: a.platform,
+        rideshare_driver_id: a.driverId,
+        is_verified: false,
+        verification_status: a.status,
+        verification_note: a.note ?? null,
+        reviewed_at: a.status === 'rejected' ? new Date(t0 - (a.daysAgo - 1) * 86_400_000).toISOString() : null,
+        created_at: new Date(t0 - a.daysAgo * 86_400_000).toISOString(),
+      };
+    }),
+  });
+
   const deals = await rest('deals', {
     method: 'POST',
     prefer: 'return=representation',
@@ -124,7 +265,7 @@ async function main() {
       venue_id: venue.id,
       hold_duration_minutes: 120,
       is_active: !inactive,
-      requires_venue_receipt: false,
+      requires_venue_receipt: Boolean(d.requires_venue_receipt),
     })),
   });
   const weighted = deals.flatMap((d, i) => Array(DEALS[i].weight).fill({ deal: d, spec: DEALS[i] }));
@@ -248,11 +389,97 @@ async function main() {
     });
   if (txns.length) await rest('transactions', { method: 'POST', body: txns });
 
+  await Promise.all([
+    ...SAMPLE_RECEIPTS.ride.map((r) => uploadSample(r.path, rideReceiptSvg(r))),
+    ...SAMPLE_RECEIPTS.venue.map((r) => uploadSample(r.path, billSvg(r))),
+  ]);
+
+  const dealNeeds = (c) => dealById.get(c.deal_id);
+  const completedNeeding = inserted
+    .filter((c) => c.status === 'completed' && (dealNeeds(c).requires_ride_receipt || dealNeeds(c).requires_venue_receipt))
+    .sort((a, b) => b.completed_at.localeCompare(a.completed_at));
+  const demoRiderNeeding = appRider ? completedNeeding.filter((c) => c.rider_user_id === appRider.id) : [];
+  const inReview = completedNeeding.filter((c) => !appRider || c.rider_user_id !== appRider.id).slice(0, 4);
+  const [riderToUpload, riderRejected] = demoRiderNeeding;
+  const held = [...inReview, riderToUpload, riderRejected].filter(Boolean);
+  const heldIds = new Set(held.map((c) => c.id));
+  const ids = (list) => list.map((c) => c.id).join(',');
+  const HELD_FLAGS = { ride_credit_paid: false, driver_kickback_paid: false, venue_charged: false, ride_receipt_verified: false };
+
+  // Approved history.
+  const approved = completedNeeding.filter((c) => !heldIds.has(c.id));
+  const approvedRide = approved.filter((c) => dealNeeds(c).requires_ride_receipt);
+  const approvedVenue = approved.filter((c) => dealNeeds(c).requires_venue_receipt);
+  if (approvedRide.length) {
+    await rest(`deal_claims?id=in.(${ids(approvedRide)})`, {
+      method: 'PATCH',
+      body: { ride_receipt_url: SAMPLE_RECEIPTS.ride[0].path, ride_receipt_status: 'approved', ride_receipt_verified: true },
+    });
+  }
+  if (approvedVenue.length) {
+    await rest(`deal_claims?id=in.(${ids(approvedVenue)})`, {
+      method: 'PATCH',
+      body: { venue_receipt_url: SAMPLE_RECEIPTS.venue[0].path, venue_receipt_status: 'approved' },
+    });
+  }
+
+  // Waiting for staff: the first one has its ride receipt approved and the bill still pending.
+  for (const [i, c] of inReview.entries()) {
+    const d = dealNeeds(c);
+    const rideApproved = i === 0 && d.requires_venue_receipt;
+    await rest(`deal_claims?id=eq.${c.id}`, {
+      method: 'PATCH',
+      body: {
+        ...HELD_FLAGS,
+        ...(d.requires_ride_receipt
+          ? {
+              ride_receipt_url: SAMPLE_RECEIPTS.ride[i % SAMPLE_RECEIPTS.ride.length].path,
+              ride_receipt_status: rideApproved ? 'approved' : 'pending_review',
+              ride_receipt_verified: rideApproved,
+            }
+          : {}),
+        ...(d.requires_venue_receipt
+          ? { venue_receipt_url: SAMPLE_RECEIPTS.venue[i % SAMPLE_RECEIPTS.venue.length].path, venue_receipt_status: 'pending_review' }
+          : {}),
+      },
+    });
+  }
+
+  // Demo rider: newest visit still needs receipts; the one before had a photo rejected.
+  if (riderToUpload) {
+    await rest(`deal_claims?id=eq.${riderToUpload.id}`, {
+      method: 'PATCH',
+      body: { ...HELD_FLAGS, ride_receipt_url: null, ride_receipt_status: null, venue_receipt_url: null, venue_receipt_status: null },
+    });
+  }
+  if (riderRejected) {
+    await rest(`deal_claims?id=eq.${riderRejected.id}`, {
+      method: 'PATCH',
+      body: {
+        ...HELD_FLAGS,
+        ride_receipt_url: dealNeeds(riderRejected).requires_ride_receipt ? SAMPLE_RECEIPTS.ride[1].path : null,
+        ride_receipt_status: dealNeeds(riderRejected).requires_ride_receipt ? 'rejected' : null,
+      },
+    });
+  }
+
+  // Money for held visits isn't settled until receipts are approved.
+  if (held.length) {
+    await rest(`transactions?deal_claim_id=in.(${ids(held)})`, { method: 'PATCH', body: { status: 'pending' } });
+  }
+  for (const c of inserted) {
+    if (heldIds.has(c.id)) c.driver_kickback_paid = false;
+  }
+  console.log(`Receipts: ${inReview.length} visits waiting for staff, ${approved.length} approved${
+    riderToUpload ? ', demo rider has 1 to upload' : ''}${riderRejected ? ' and 1 rejected' : ''}`);
+  console.log(`Driver applications: ${APPLICANTS.filter((a) => a.status === 'pending').length} pending, ${
+    APPLICANTS.filter((a) => a.status === 'rejected').length} rejected`);
+
   const byStatus = inserted.reduce((acc, c) => ((acc[c.status] = (acc[c.status] || 0) + 1), acc), {});
   console.log(`Created ${riders.length} demo riders, ${deals.length} deals, ${inserted.length} claims`, byStatus, `${txns.length} transactions`);
 
   if (driverProfile) {
-    const bonuses = inserted.filter((c) => c.status === 'completed' && c.referring_driver_id);
+    const bonuses = inserted.filter((c) => c.status === 'completed' && c.referring_driver_id && !heldIds.has(c.id));
     const earned = bonuses.reduce((s, c) => s + Number(dealById.get(c.deal_id).driver_kickback_amount), 0);
     const unpaid = bonuses
       .filter((c) => !c.driver_kickback_paid)

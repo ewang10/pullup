@@ -11,6 +11,7 @@
 
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+import { homeForRole, isStaffRole } from '@/lib/roles';
 
 /** Route prefixes that require authentication and the venue_admin role. */
 const PROTECTED_PREFIXES = [
@@ -66,6 +67,21 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
+  // --- Staff area: platform admins and support only ---
+  if (pathname === '/staff' || pathname.startsWith('/staff/')) {
+    if (!user) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/login';
+      return NextResponse.redirect(url);
+    }
+    if (!isStaffRole(user.user_metadata?.role)) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/login';
+      url.searchParams.set('error', 'unauthorized');
+      return NextResponse.redirect(url);
+    }
+  }
+
   // --- Protected route checks ---
   if (isProtectedRoute(pathname)) {
     // Not signed in at all — redirect to login
@@ -85,13 +101,11 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // --- Auth page redirect for already-authenticated venue admins ---
-  if (
-    user &&
-    (pathname === '/login' || pathname === '/signup')
-  ) {
+  // --- Auth page redirect for already-authenticated venue admins / staff ---
+  const home = user ? homeForRole(user.user_metadata?.role) : null;
+  if (home && (pathname === '/login' || pathname === '/signup')) {
     const url = request.nextUrl.clone();
-    url.pathname = '/dashboard';
+    url.pathname = home;
     return NextResponse.redirect(url);
   }
 

@@ -14,6 +14,7 @@ import { Tabs } from "expo-router";
 import { StyleSheet } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../lib/auth";
+import DriverReviewStatus from "../../components/DriverReviewStatus";
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>["name"];
 
@@ -45,8 +46,13 @@ function TabIcon({ name, focused }: TabIconProps) {
 }
 
 export default function TabsLayout() {
-  const { role } = useAuth();
+  const { role, driverProfile } = useAuth();
   const isDriver = role === "driver";
+
+  // Drivers can use the app only after staff approve their rideshare details.
+  if (isDriver && driverProfile && driverProfile.verification_status !== "approved") {
+    return <DriverReviewStatus driverProfile={driverProfile} />;
+  }
 
   return (
     <Tabs
