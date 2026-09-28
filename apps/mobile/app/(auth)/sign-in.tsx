@@ -23,6 +23,22 @@ import { useRouter, Link } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../../lib/auth";
 
+// Public portfolio demo accounts. Set only for demo builds; hidden otherwise.
+const DEMO_ACCOUNTS = [
+  {
+    role: "rider",
+    label: "Demo rider",
+    email: process.env.EXPO_PUBLIC_DEMO_RIDER_EMAIL,
+    password: process.env.EXPO_PUBLIC_DEMO_RIDER_PASSWORD,
+  },
+  {
+    role: "driver",
+    label: "Demo driver",
+    email: process.env.EXPO_PUBLIC_DEMO_DRIVER_EMAIL,
+    password: process.env.EXPO_PUBLIC_DEMO_DRIVER_PASSWORD,
+  },
+].filter((a): a is { role: string; label: string; email: string; password: string } => !!a.email && !!a.password);
+
 export default function SignInScreen() {
   const router = useRouter();
   const { signIn } = useAuth();
@@ -31,6 +47,16 @@ export default function SignInScreen() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const signInAs = async (demoEmail: string, demoPassword: string) => {
+    setEmail(demoEmail);
+    setPassword(demoPassword);
+    setLoading(true);
+    setError(null);
+    const { error: signInError } = await signIn(demoEmail, demoPassword);
+    setLoading(false);
+    if (signInError) setError(signInError);
+  };
 
   const handleSignIn = async () => {
     if (!email.trim() || !password.trim()) {
@@ -80,6 +106,27 @@ export default function SignInScreen() {
               accessibilityLiveRegion="polite"
             >
               <Text style={styles.errorText}>{error}</Text>
+            </View>
+          )}
+
+          {DEMO_ACCOUNTS.length > 0 && (
+            <View style={styles.demoBox}>
+              <Text style={styles.demoTitle}>Just looking around?</Text>
+              <Text style={styles.demoText}>Sign in to an account with sample activity.</Text>
+              <View style={styles.demoRow}>
+                {DEMO_ACCOUNTS.map((a) => (
+                  <Pressable
+                    key={a.role}
+                    style={[styles.demoButton, loading && styles.buttonDisabled]}
+                    onPress={() => signInAs(a.email, a.password)}
+                    disabled={loading}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Sign in as ${a.label.toLowerCase()}`}
+                  >
+                    <Text style={styles.demoButtonText}>{a.label}</Text>
+                  </Pressable>
+                ))}
+              </View>
             </View>
           )}
 
@@ -197,6 +244,44 @@ const styles = StyleSheet.create({
   errorText: {
     color: "#B91C1C",
     fontSize: 14,
+  },
+  demoBox: {
+    backgroundColor: "#EEF2FF",
+    borderColor: "#C7D2FE",
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+    gap: 4,
+  },
+  demoTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1A1A2E",
+  },
+  demoText: {
+    fontSize: 14,
+    color: "#4B5563",
+  },
+  demoRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 12,
+  },
+  demoButton: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#5B53EE",
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  demoButtonText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#5B53EE",
   },
   form: {
     gap: 20,
