@@ -31,6 +31,8 @@ function RootLayoutNav() {
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: "#F8F9FA" },
+          // iOS otherwise shows the previous route's name, e.g. "(tabs)".
+          headerBackTitle: "Back",
         }}
       >
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
