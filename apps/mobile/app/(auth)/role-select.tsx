@@ -56,11 +56,11 @@ export default function RoleSelectScreen() {
             </View>
             <Text style={styles.cardTitle}>I'm a Driver</Text>
             <Text style={styles.cardDescription}>
-              Refer riders to venues, earn commissions, and build your network.
+              Earn a bonus when riders you drive complete a PullUp deal.
             </Text>
             <View style={styles.cardBullets}>
-              <Text style={styles.bullet}>- Share your referral code</Text>
-              <Text style={styles.bullet}>- Earn on every referred claim</Text>
+              <Text style={styles.bullet}>- Show riders your driver code</Text>
+              <Text style={styles.bullet}>- Earn on every completed visit</Text>
               <Text style={styles.bullet}>- Track your earnings</Text>
             </View>
           </Pressable>

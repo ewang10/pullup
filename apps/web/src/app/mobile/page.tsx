@@ -19,6 +19,7 @@ const EXPO_GO_URL =
   'exp://u.expo.dev/c7d5a204-454c-43c5-a89c-5adcb1cda834?channel-name=preview&runtime-version=exposdk:57.0.0';
 const VIDEO_URL = process.env.NEXT_PUBLIC_DEMO_VIDEO_URL;
 const APPETIZE_URL = process.env.NEXT_PUBLIC_APPETIZE_URL;
+const DEMO_DRIVER_CODE = process.env.NEXT_PUBLIC_DEMO_DRIVER_CODE;
 const ANDROID_APK_URL = process.env.NEXT_PUBLIC_ANDROID_APK_URL;
 const EXPO_GO_PUBLIC = process.env.NEXT_PUBLIC_EXPO_GO_PUBLIC === 'true';
 const CAN_TRY = Boolean(APPETIZE_URL || ANDROID_APK_URL || EXPO_GO_PUBLIC);
@@ -251,6 +252,14 @@ export default function TryMobilePage() {
               <strong className="text-gray-900">No deals near you?</strong> You&apos;ll see PullUp Demo Café, a sample
               venue in Sacramento, so you can still explore claiming a deal.
             </li>
+            {DEMO_DRIVER_CODE && (
+              <li>
+                <strong className="text-gray-900">Try the driver code:</strong> sign in as the demo rider, claim a
+                deal, then on the claim tap &ldquo;or type it&rdquo; and enter{' '}
+                <code className="font-mono font-semibold text-gray-900">{DEMO_DRIVER_CODE}</code>. The demo
+                driver then earns a bonus for that visit.
+              </li>
+            )}
             <li>
               <strong className="text-gray-900">Location and camera permissions</strong> are used to show nearby deals
               and scan a venue&apos;s QR code. You can say no and still browse.

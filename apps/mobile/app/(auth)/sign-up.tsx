@@ -1,8 +1,8 @@
 /**
  * Sign-up screen for the PullUp app.
  *
- * Collects the user's full name, email, password, role (rider or driver),
- * and an optional referral code. Displays inline validation errors.
+ * Collects the user's full name, email, password and role (rider or driver).
+ * Displays inline validation errors.
  * All form controls carry accessibility labels, roles, and selection
  * states so that screen readers can guide users through registration.
  */
@@ -36,7 +36,6 @@ export default function SignUpScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<UserRole>("rider");
-  const [referralCode, setReferralCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,7 +58,6 @@ export default function SignUpScreen() {
       password,
       fullName: fullName.trim(),
       role,
-      referralCode: referralCode.trim() || undefined,
     });
 
     setLoading(false);
@@ -196,20 +194,6 @@ export default function SignUpScreen() {
                   </Text>
                 </Pressable>
               </View>
-            </View>
-
-            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Referral Code (optional)</Text>
-              <TextInput
-                style={styles.input}
-                value={referralCode}
-                onChangeText={setReferralCode}
-                placeholder="Enter driver referral code"
-                placeholderTextColor="#6B7280"
-                autoCapitalize="characters"
-                editable={!loading}
-                accessibilityLabel="Referral code"
-              />
             </View>
 
             <Pressable

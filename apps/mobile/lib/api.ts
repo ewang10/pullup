@@ -306,6 +306,35 @@ export async function completeClaim(
 }
 
 /**
+ * Link the rider's driver to an active claim using the driver's code, so the
+ * driver earns the bonus when the visit completes. Calls `link-driver`, which
+ * only accepts reserved claims with no driver linked yet.
+ *
+ * @returns The driver's name to show the rider, or an error.
+ */
+export async function linkDriver(
+  claimId: string,
+  driverCode: string
+): Promise<ApiResult<{ driver_name: string }>> {
+  try {
+    const { data, error } = await supabase.functions.invoke("link-driver", {
+      body: { claim_id: claimId, referral_code: driverCode },
+    });
+    if (error) {
+      // Surface the function's own message (e.g. "Driver not found for this referral code").
+      const body = await (error as { context?: Response }).context?.json?.().catch(() => null);
+      const message = body?.error === "Driver not found for this referral code"
+        ? "No driver found with that code. Check it and try again."
+        : body?.error ?? error.message;
+      return { data: null, error: message };
+    }
+    return { data: data as { driver_name: string }, error: null };
+  } catch (err) {
+    return { data: null, error: "Failed to link driver" };
+  }
+}
+
+/**
  * Upload a ride receipt image and link it to a claim.
  *
  * 1. Uploads the image to the `receipts` storage bucket.
@@ -427,32 +456,34 @@ export async function fetchDriverStats(): Promise<ApiResult<DriverStats>> {
   }
 }
 
-/**
- * Fetch the list of riders referred by the current driver.
- *
- * Calls the `get_driver_referrals` Postgres RPC. Each row contains
- * the rider's name, email, number of completed claims, and the date
- * they joined via the referral link.
- *
- * @returns An array of referral summaries, or an error.
- */
-export async function fetchDriverReferrals(): Promise<
-  ApiResult<
-    {
-      id: string;
-      rider_name: string;
-      rider_email: string;
-      total_claims: number;
-      joined_at: string;
-    }[]
-  >
-> {
-  try {
-    const { data, error } = await supabase.rpc("get_driver_referrals");
+/** A rider who added the calling driver's code to at least one claim. */
+export interface DriverRider {
+  rider_id: string;
+  rider_display_name: string;
+  rides: number;
+  completed_visits: number;
+  earned: number;
+  last_ride_at: string;
+}
 
+/**
+ * Fetch riders who added the current driver's code to a claim, newest first.
+ * Calls the `get_driver_riders` RPC (first name + last initial only).
+ */
+export async function fetchDriverRiders(): Promise<ApiResult<DriverRider[]>> {
+  try {
+    const { data, error } = await supabase.rpc("get_driver_riders");
     if (error) return { data: null, error: error.message };
-    return { data: data ?? [], error: null };
+    return {
+      data: ((data ?? []) as DriverRider[]).map((r) => ({
+        ...r,
+        rides: Number(r.rides),
+        completed_visits: Number(r.completed_visits),
+        earned: Number(r.earned),
+      })),
+      error: null,
+    };
   } catch (err) {
-    return { data: null, error: "Failed to fetch referrals" };
+    return { data: null, error: "Failed to fetch riders" };
   }
 }

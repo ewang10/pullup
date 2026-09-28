@@ -23,8 +23,8 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { CameraView, useCameraPermissions } from "expo-camera";
-import { completeClaim } from "../lib/api";
-import { parseQRContent } from "@pullup/shared";
+import { completeClaim, linkDriver } from "../lib/api";
+import { parseDriverCode, parseQRContent } from "@pullup/shared";
 import type { DealClaim } from "@pullup/shared";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -34,7 +34,10 @@ const SCAN_FRAME_SIZE = SCREEN_WIDTH * 0.7;
 type ScanOverlay = "none" | "processing" | "success" | "error";
 
 export default function ScanScreen() {
-  const { claimId } = useLocalSearchParams<{ claimId: string }>();
+  // mode "driver" links the rider's driver to the claim; default verifies the venue visit.
+  const { claimId, mode } = useLocalSearchParams<{ claimId: string; mode?: string }>();
+  const isDriverMode = mode === "driver";
+  const [driverName, setDriverName] = useState<string | null>(null);
   const router = useRouter();
 
   const [permission, requestPermission] = useCameraPermissions();
@@ -59,6 +62,29 @@ export default function ScanScreen() {
 
     isProcessingRef.current = true;
     setOverlay("processing");
+
+    if (isDriverMode) {
+      const code = parseDriverCode(scanResult.data);
+      if (!code) {
+        setErrorMessage(
+          "That isn't a PullUp driver code. Ask your driver to open the Driver code tab in their app."
+        );
+        setOverlay("error");
+        isProcessingRef.current = false;
+        return;
+      }
+      const { data: linked, error: linkError } = await linkDriver(claimId, code);
+      if (linkError) {
+        setErrorMessage(linkError);
+        setOverlay("error");
+        isProcessingRef.current = false;
+        return;
+      }
+      setDriverName(linked?.driver_name ?? null);
+      setOverlay("success");
+      setTimeout(() => router.back(), 1500);
+      return;
+    }
 
     const venueId = parseQRContent(scanResult.data);
 
@@ -114,8 +140,9 @@ export default function ScanScreen() {
       <View style={styles.centered}>
         <Text style={styles.permissionTitle}>Camera Access Required</Text>
         <Text style={styles.permissionMessage}>
-          PullUp needs camera access to scan the venue QR code and verify your
-          visit.
+          {isDriverMode
+            ? "PullUp needs camera access to scan your driver's code."
+            : "PullUp needs camera access to scan the venue QR code and verify your visit."}
         </Text>
         <Pressable
           style={styles.permissionButton}
@@ -173,7 +200,9 @@ export default function ScanScreen() {
         {/* Bottom dark region */}
         <View style={styles.overlayBottom}>
           <Text style={styles.instructionText}>
-            Point your camera at the venue QR code
+            {isDriverMode
+              ? "Point your camera at your driver's PullUp code"
+              : "Point your camera at the venue QR code"}
           </Text>
 
           {/* Flash toggle */}
@@ -204,9 +233,9 @@ export default function ScanScreen() {
               color="#5B53EE"
               accessibilityLabel="Verifying QR code"
             />
-            <Text style={styles.resultTitle}>Verifying...</Text>
+            <Text style={styles.resultTitle}>{isDriverMode ? "Linking..." : "Verifying..."}</Text>
             <Text style={styles.resultMessage}>
-              Confirming your visit with the venue.
+              {isDriverMode ? "Adding your driver to this claim." : "Confirming your visit with the venue."}
             </Text>
           </View>
         </View>
@@ -219,9 +248,11 @@ export default function ScanScreen() {
             <View style={styles.successIcon}>
               <Text style={styles.successIconText}>{'\u2713'}</Text>
             </View>
-            <Text style={styles.resultTitle}>Verified!</Text>
+            <Text style={styles.resultTitle}>{isDriverMode ? "Driver added!" : "Verified!"}</Text>
             <Text style={styles.resultMessage}>
-              Your visit has been confirmed. Enjoy your deal!
+              {isDriverMode
+                ? `${driverName ?? "Your driver"} will get a bonus when you complete this visit.`
+                : "Your visit has been confirmed. Enjoy your deal!"}
             </Text>
           </View>
         </View>
@@ -250,6 +281,7 @@ export default function ScanScreen() {
               style={styles.cancelButton}
               onPress={() => router.back()}
               accessibilityLabel="Go back to claim"
+              accessibilityHint={isDriverMode ? "You can type the code instead" : undefined}
               accessibilityRole="button"
             >
               <Text style={styles.cancelButtonText}>Go Back</Text>

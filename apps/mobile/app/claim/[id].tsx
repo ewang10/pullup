@@ -10,8 +10,9 @@
  * The claim is fetched via `fetchMyClaims` and filtered by the route `id`
  * parameter. Domain types come from `@pullup/shared`.
  */
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
+  TextInput,
   View,
   Text,
   StyleSheet,
@@ -21,11 +22,11 @@ import {
   Alert,
   RefreshControl,
 } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
-import { fetchMyClaims, cancelClaim, uploadReceipt } from "../../lib/api";
+import { fetchMyClaims, cancelClaim, uploadReceipt, linkDriver } from "../../lib/api";
 import type { DealClaimWithDeal, ClaimStatus } from "@pullup/shared";
-import { CLAIM_STATUSES } from "@pullup/shared";
+import { CLAIM_STATUSES, parseDriverCode } from "@pullup/shared";
 
 // ── Countdown hook ───────────────────────────────────────────
 
@@ -244,6 +245,10 @@ export default function ClaimDetailScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [driverCode, setDriverCode] = useState("");
+  const [driverError, setDriverError] = useState<string | null>(null);
+  const [linkingDriver, setLinkingDriver] = useState(false);
+  const [linkedDriverName, setLinkedDriverName] = useState<string | null>(null);
 
   const { timeLeft, isExpired } = useCountdown(claim?.expires_at);
 
@@ -272,6 +277,38 @@ export default function ClaimDetailScreen() {
       setLoading(false);
     })();
   }, [loadClaim]);
+
+  // Reload when returning from the scanner (e.g. after adding a driver).
+  const isFirstFocus = useRef(true);
+  useFocusEffect(
+    useCallback(() => {
+      if (isFirstFocus.current) {
+        isFirstFocus.current = false;
+        return;
+      }
+      loadClaim();
+    }, [loadClaim])
+  );
+
+  const handleAddDriverCode = async () => {
+    if (!claim) return;
+    const code = parseDriverCode(driverCode);
+    if (!code) {
+      setDriverError("Driver codes are 8 letters and numbers, like 86YS23YR.");
+      return;
+    }
+    setLinkingDriver(true);
+    setDriverError(null);
+    const { data, error: err } = await linkDriver(claim.id, code);
+    setLinkingDriver(false);
+    if (err) {
+      setDriverError(err);
+      return;
+    }
+    setLinkedDriverName(data?.driver_name ?? null);
+    setDriverCode("");
+    await loadClaim();
+  };
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -452,6 +489,75 @@ export default function ClaimDetailScreen() {
           </Text>
         </View>
 
+        {/* Driver: riders add the code of the driver who brought them */}
+        {(isReserved && !isExpired) || claim.referring_driver_id ? (
+          <View style={styles.card}>
+            {claim.referring_driver_id ? (
+              <View accessibilityLiveRegion="polite">
+                <Text style={styles.driverTitle}>✓ Driver added</Text>
+                <Text style={styles.driverText}>
+                  {linkedDriverName ?? "Your driver"} {isCompleted ? "earned" : "will earn"} a bonus for
+                  bringing you here. Your deal stays the same.
+                </Text>
+              </View>
+            ) : (
+              <>
+                <Text style={styles.driverTitle}>Riding with a PullUp driver?</Text>
+                <Text style={styles.driverText}>
+                  Add their driver code so they earn a bonus for bringing you here. Your deal stays the same.
+                </Text>
+                <Pressable
+                  style={styles.driverScanButton}
+                  onPress={() => router.push(`/scan?claimId=${claim.id}&mode=driver`)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Scan driver code"
+                >
+                  <Text style={styles.driverScanButtonText}>Scan driver code</Text>
+                </Pressable>
+                <Text style={styles.driverOr}>or type it</Text>
+                <View style={styles.driverInputRow}>
+                  <TextInput
+                    style={styles.driverInput}
+                    value={driverCode}
+                    onChangeText={(t) => {
+                      setDriverCode(t.toUpperCase());
+                      setDriverError(null);
+                    }}
+                    placeholder="e.g. 86YS23YR"
+                    placeholderTextColor="#6B7280"
+                    autoCapitalize="characters"
+                    autoCorrect={false}
+                    maxLength={12}
+                    editable={!linkingDriver}
+                    accessibilityLabel="Driver code"
+                    returnKeyType="done"
+                    onSubmitEditing={handleAddDriverCode}
+                  />
+                  <Pressable
+                    style={[styles.driverAddButton, (linkingDriver || !driverCode) && styles.buttonDisabled]}
+                    onPress={handleAddDriverCode}
+                    disabled={linkingDriver || !driverCode}
+                    accessibilityRole="button"
+                    accessibilityLabel="Add driver code"
+                    accessibilityState={{ disabled: linkingDriver || !driverCode, busy: linkingDriver }}
+                  >
+                    {linkingDriver ? (
+                      <ActivityIndicator color="#FFFFFF" accessibilityLabel="Adding driver" />
+                    ) : (
+                      <Text style={styles.driverAddButtonText}>Add</Text>
+                    )}
+                  </Pressable>
+                </View>
+                {driverError && (
+                  <Text style={styles.driverError} accessibilityRole="alert" accessibilityLiveRegion="polite">
+                    {driverError}
+                  </Text>
+                )}
+              </>
+            )}
+          </View>
+        ) : null}
+
         {/* Details grid */}
         <View style={styles.detailsGrid}>
           <View style={styles.detailItem}>
@@ -559,6 +665,74 @@ export default function ClaimDetailScreen() {
 // ── Styles ───────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
+  driverTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1A1A2E",
+    marginBottom: 4,
+  },
+  driverText: {
+    fontSize: 14,
+    color: "#4B5563",
+    lineHeight: 20,
+  },
+  driverScanButton: {
+    marginTop: 12,
+    minHeight: 48,
+    borderRadius: 10,
+    backgroundColor: "#5B53EE",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  driverScanButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  driverOr: {
+    textAlign: "center",
+    color: "#4B5563",
+    fontSize: 13,
+    marginVertical: 10,
+  },
+  driverInputRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  driverInput: {
+    flex: 1,
+    minHeight: 48,
+    borderWidth: 1,
+    borderColor: "#6B7280",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    fontSize: 16,
+    letterSpacing: 2,
+    color: "#1A1A2E",
+    backgroundColor: "#FFFFFF",
+  },
+  driverAddButton: {
+    minWidth: 72,
+    minHeight: 48,
+    borderRadius: 10,
+    backgroundColor: "#1A1A2E",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 16,
+  },
+  driverAddButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  driverError: {
+    marginTop: 8,
+    color: "#B91C1C",
+    fontSize: 14,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
   container: {
     flex: 1,
     backgroundColor: "#F8F9FA",

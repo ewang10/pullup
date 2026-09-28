@@ -4,7 +4,7 @@
  * Renders a modern floating-style bottom tab bar with Ionicon icons.
  * Tabs are conditionally shown based on the authenticated user's role:
  *   - Riders see: Deals map, Browse, Claims, Profile
- *   - Drivers see: Deals map, Browse, Referrals, Earnings, Profile
+ *   - Drivers see: Deals map, Browse, Driver code, Earnings, Profile
  *
  * Each tab includes an accessibility label so screen readers can
  * announce the destination clearly.
@@ -96,9 +96,9 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="referrals"
         options={{
-          title: "Referrals",
-          headerTitle: "Referrals",
-          tabBarAccessibilityLabel: "Manage referrals",
+          title: "Driver code",
+          headerTitle: "Your driver code",
+          tabBarAccessibilityLabel: "Your driver code and riders",
           tabBarIcon: ({ focused }) => (
             <TabIcon name="referrals" focused={focused} />
           ),

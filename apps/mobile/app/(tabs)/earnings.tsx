@@ -97,7 +97,7 @@ export default function EarningsScreen() {
 
       <View style={styles.statsGrid}>
         <StatCard
-          label="Total Referrals"
+          label="Riders brought"
           value={stats.total_referrals.toString()}
           color="#5B53EE"
         />
@@ -114,19 +114,18 @@ export default function EarningsScreen() {
           <View style={styles.infoRow}>
             <Text style={styles.infoStep}>1</Text>
             <View style={styles.infoContent}>
-              <Text style={styles.infoTitle}>Share your referral code</Text>
+              <Text style={styles.infoTitle}>Show your driver code</Text>
               <Text style={styles.infoDescription}>
-                Give your unique code to riders heading to partner venues.
+                When you drive someone to a PullUp deal, they scan or type your code on their claim.
               </Text>
             </View>
           </View>
           <View style={styles.infoRow}>
             <Text style={styles.infoStep}>2</Text>
             <View style={styles.infoContent}>
-              <Text style={styles.infoTitle}>Rider claims a deal</Text>
+              <Text style={styles.infoTitle}>Rider completes the visit</Text>
               <Text style={styles.infoDescription}>
-                When a rider uses your code and claims a deal, you earn a
-                commission.
+                Once they check in at the venue, you earn 20% of what the venue pays for that visit.
               </Text>
             </View>
           </View>

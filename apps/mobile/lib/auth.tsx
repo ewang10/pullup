@@ -54,7 +54,6 @@ interface AuthContextValue {
     password: string;
     fullName: string;
     role: UserRole;
-    referralCode?: string;
   }) => Promise<{ error: string | null }>;
   /** Sign out and clear all local auth state. */
   signOut: () => Promise<void>;
@@ -154,7 +153,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     password: string;
     fullName: string;
     role: UserRole;
-    referralCode?: string;
   }): Promise<{ error: string | null }> => {
     const { error } = await supabase.auth.signUp({
       email: params.email,
@@ -163,7 +161,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         data: {
           full_name: params.fullName,
           role: params.role,
-          referral_code: params.referralCode || null,
         },
       },
     });

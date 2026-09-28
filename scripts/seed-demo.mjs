@@ -6,7 +6,7 @@
  * and the fake demo riders, then recreates 30 days of sample activity.
  * Touches only the venue owned by DEMO_EMAIL, users with DEMO_RIDER_DOMAIN
  * emails, and (when they exist) the demo rider/driver app accounts: the
- * driver's referrals and verification, and both accounts' claims.
+ * driver's linked claims and verification, and both accounts' claims.
  *
  * Usage (from repo root):
  *   node --env-file=apps/web/.env.local scripts/seed-demo.mjs
@@ -26,7 +26,7 @@ const DEMO_EMAIL = process.env.DEMO_EMAIL || 'pullup.demo.app@gmail.com';
 const DEMO_RIDER_DOMAIN = 'demo.pullup.example.com';
 const DEMO_RIDER_EMAIL = process.env.DEMO_RIDER_EMAIL || 'pullup.demo.app+rider@gmail.com';
 const DEMO_DRIVER_EMAIL = process.env.DEMO_DRIVER_EMAIL || 'pullup.demo.app+driver@gmail.com';
-// Sample riders referred by the demo driver (the demo rider is always referred).
+// Sample riders whose claims the demo driver is linked to (plus the demo rider).
 const REFERRED_SAMPLE_RIDERS = 5;
 // Driver bonuses newer than this stay unpaid, so the driver has a balance.
 const UNPAID_BONUS_DAYS = 7;
@@ -143,16 +143,9 @@ async function main() {
   const DAY = 24 * 60 * 60 * 1000;
 
   if (driverProfile) {
+    // Drivers are credited per claim (referring_driver_id), not via sign-up
+    // referrals; clear any legacy rows so the demo only reflects claims.
     await rest(`referrals?driver_id=eq.${driverProfile.id}`, { method: 'DELETE' });
-    await rest('referrals', {
-      method: 'POST',
-      body: [...referredIds].map((riderId, i) => ({
-        driver_id: driverProfile.id,
-        rider_user_id: riderId,
-        referral_code_used: driverProfile.referral_code,
-        created_at: new Date(now.getTime() - (28 - i * 2) * DAY).toISOString(),
-      })),
-    });
     // Present the demo driver as verified so the earnings screens are unlocked.
     await rest(`driver_profiles?id=eq.${driverProfile.id}`, {
       method: 'PATCH',
@@ -268,7 +261,7 @@ async function main() {
       method: 'PATCH',
       body: { total_earnings: Number(earned.toFixed(2)), payout_balance: Number(unpaid.toFixed(2)) },
     });
-    console.log(`Demo driver: ${referredIds.size} referrals, ${bonuses.length} bonuses, ${earned.toFixed(2)} earned, ${unpaid.toFixed(2)} unpaid`);
+    console.log(`Demo driver: ${referredIds.size} riders, ${bonuses.length} bonuses, ${earned.toFixed(2)} earned, ${unpaid.toFixed(2)} unpaid`);
   } else {
     console.log(`No demo driver (${DEMO_DRIVER_EMAIL}) yet; skipped driver data.`);
   }

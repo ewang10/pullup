@@ -59,6 +59,26 @@ export function parseQRContent(content: string): string | null {
   return content.slice(QR_PREFIX.length, -'/verify'.length);
 }
 
+/**
+ * Driver codes: a rider scans (or types) their driver's code on an active
+ * claim so the driver earns the bonus for that visit.
+ */
+export const DRIVER_QR_PREFIX = 'pullup://driver/';
+const DRIVER_CODE_PATTERN = /^[A-HJ-NP-Z2-9]{8}$/;
+
+export function generateDriverQRContent(code: string): string {
+  return `${DRIVER_QR_PREFIX}${code}`;
+}
+
+/** Accepts a scanned driver QR or a typed code; returns the normalized code or null. */
+export function parseDriverCode(content: string): string | null {
+  const raw = content.trim().toUpperCase();
+  const code = raw.startsWith(DRIVER_QR_PREFIX.toUpperCase())
+    ? raw.slice(DRIVER_QR_PREFIX.length)
+    : raw.replace(/[\s-]/g, '');
+  return DRIVER_CODE_PATTERN.test(code) ? code : null;
+}
+
 export function generateReferralCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = '';

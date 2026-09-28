@@ -1,3 +1,10 @@
+/**
+ * Driver code screen.
+ *
+ * Shows the driver's code as a QR code for riders to scan (or type) on their
+ * active claim. Each completed visit on a claim with this code earns the
+ * driver a bonus. Below, the riders who have added the code.
+ */
 import { useEffect, useState, useCallback } from "react";
 import {
   View,
@@ -9,126 +16,143 @@ import {
   RefreshControl,
   Share,
 } from "react-native";
+import QRCode from "react-native-qrcode-svg";
+import { generateDriverQRContent } from "@pullup/shared";
 import { useAuth } from "../../lib/auth";
-import { fetchDriverReferrals } from "../../lib/api";
+import { fetchDriverRiders, type DriverRider } from "../../lib/api";
 
-interface Referral {
-  id: string;
-  rider_name: string;
-  rider_email: string;
-  total_claims: number;
-  joined_at: string;
-}
-
-export default function ReferralsScreen() {
+export default function DriverCodeScreen() {
   const { driverProfile } = useAuth();
-  const [referrals, setReferrals] = useState<Referral[]>([]);
+  const code = driverProfile?.referral_code;
+  const [riders, setRiders] = useState<DriverRider[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadReferrals = useCallback(async () => {
+  const loadRiders = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const { data, error: err } = await fetchDriverReferrals();
-    if (err) {
-      setError(err);
-    } else if (data) {
-      setReferrals(data);
-    }
+    const { data, error: err } = await fetchDriverRiders();
+    if (err) setError(err);
+    else if (data) setRiders(data);
     setLoading(false);
   }, []);
 
   useEffect(() => {
-    loadReferrals();
-  }, []);
+    loadRiders();
+  }, [loadRiders]);
 
   const handleShare = async () => {
-    if (!driverProfile?.referral_code) return;
-
+    if (!code) return;
     try {
       await Share.share({
-        message: `Join PullUp and get exclusive local deals! Use my referral code: ${driverProfile.referral_code}\n\nDownload: https://pullup.app/download`,
+        message: `Riding with me to a PullUp deal? Add my driver code ${code} to your claim in the PullUp app.`,
       });
     } catch {
       // User cancelled share
     }
   };
 
-  if (loading && referrals.length === 0) {
+  const header = (
+    <>
+      <View style={styles.codeCard}>
+        <Text style={styles.codeLabel} accessibilityRole="header">
+          Show this to your rider
+        </Text>
+        {code ? (
+          <View
+            style={styles.qrWrap}
+            accessible
+            accessibilityRole="image"
+            accessibilityLabel={`QR code for driver code ${code.split("").join(" ")}`}
+          >
+            <QRCode value={generateDriverQRContent(code)} size={180} backgroundColor="#FFFFFF" color="#1A1A2E" />
+          </View>
+        ) : (
+          <ActivityIndicator color="#FFFFFF" accessibilityLabel="Loading your code" />
+        )}
+        <Text style={styles.codeValue} accessibilityLabel={code ? `Code ${code.split("").join(" ")}` : undefined}>
+          {code ?? "--------"}
+        </Text>
+        <Text style={styles.codeHint}>
+          When a rider going to a PullUp deal scans or types this code on their claim, you earn a bonus once they
+          complete the visit.
+        </Text>
+        <Pressable
+          style={styles.shareButton}
+          onPress={handleShare}
+          disabled={!code}
+          accessibilityRole="button"
+          accessibilityLabel="Share your driver code"
+        >
+          <Text style={styles.shareButtonText}>Share code</Text>
+        </Pressable>
+      </View>
+
+      <Text style={styles.sectionTitle} accessibilityRole="header">
+        Riders who added your code ({riders.length})
+      </Text>
+
+      {error && (
+        <View style={styles.errorBanner} accessibilityRole="alert">
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      )}
+    </>
+  );
+
+  if (loading && riders.length === 0 && !code) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#5B53EE" />
+        <ActivityIndicator size="large" color="#5B53EE" accessibilityLabel="Loading" />
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <View style={styles.codeCard}>
-        <Text style={styles.codeLabel}>Your Referral Code</Text>
-        <Text style={styles.codeValue}>
-          {driverProfile?.referral_code ?? "---"}
-        </Text>
-        <Text style={styles.codeHint}>
-          Share this code with riders to earn commissions on their claims.
-        </Text>
-        <Pressable style={styles.shareButton} onPress={handleShare}>
-          <Text style={styles.shareButtonText}>Share Code</Text>
-        </Pressable>
-      </View>
-
-      <Text style={styles.sectionTitle}>
-        Referred Riders ({referrals.length})
-      </Text>
-
-      {error && (
-        <View style={styles.errorBanner}>
-          <Text style={styles.errorText}>{error}</Text>
-        </View>
-      )}
-
       <FlatList
-        data={referrals}
-        keyExtractor={(item) => item.id}
+        data={riders}
+        keyExtractor={(item) => item.rider_id}
+        ListHeaderComponent={header}
         renderItem={({ item }) => (
-          <View style={styles.referralCard}>
-            <View style={styles.referralAvatar}>
-              <Text style={styles.referralAvatarText}>
-                {item.rider_name
+          <View
+            style={styles.riderCard}
+            accessible
+            accessibilityLabel={`${item.rider_display_name}, ${item.completed_visits} completed visits, earned $${item.earned.toFixed(2)}`}
+          >
+            <View style={styles.riderAvatar} importantForAccessibility="no-hide-descendants">
+              <Text style={styles.riderAvatarText}>
+                {item.rider_display_name
+                  .replace(".", "")
                   .split(" ")
                   .map((n) => n[0])
                   .join("")
                   .toUpperCase()}
               </Text>
             </View>
-            <View style={styles.referralInfo}>
-              <Text style={styles.referralName}>{item.rider_name}</Text>
-              <Text style={styles.referralJoined}>
-                Joined {new Date(item.joined_at).toLocaleDateString()}
+            <View style={styles.riderInfo}>
+              <Text style={styles.riderName}>{item.rider_display_name}</Text>
+              <Text style={styles.riderMeta}>
+                {item.completed_visits} of {item.rides} ride{item.rides === 1 ? "" : "s"} completed · last{" "}
+                {new Date(item.last_ride_at).toLocaleDateString()}
               </Text>
             </View>
-            <View style={styles.claimsBadge}>
-              <Text style={styles.claimsCount}>{item.total_claims}</Text>
-              <Text style={styles.claimsLabel}>claims</Text>
+            <View style={styles.earnedBadge}>
+              <Text style={styles.earnedValue}>${item.earned.toFixed(2)}</Text>
+              <Text style={styles.earnedLabel}>earned</Text>
             </View>
           </View>
         )}
         contentContainerStyle={styles.listContent}
         refreshControl={
-          <RefreshControl
-            refreshing={loading}
-            onRefresh={loadReferrals}
-            tintColor="#5B53EE"
-            colors={["#5B53EE"]}
-          />
+          <RefreshControl refreshing={loading} onRefresh={loadRiders} tintColor="#5B53EE" colors={["#5B53EE"]} />
         }
         ListEmptyComponent={
           !loading ? (
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyIcon}>🔗</Text>
-              <Text style={styles.emptyTitle}>No referrals yet</Text>
+              <Text style={styles.emptyTitle}>No riders yet</Text>
               <Text style={styles.emptySubtitle}>
-                Share your code to start earning!
+                When a rider adds your code to a claim, they&apos;ll show up here.
               </Text>
             </View>
           ) : null
@@ -152,41 +176,43 @@ const styles = StyleSheet.create({
   },
   codeCard: {
     backgroundColor: "#5B53EE",
-    margin: 16,
+    marginVertical: 16,
     borderRadius: 16,
     padding: 24,
     alignItems: "center",
-    shadowColor: "#5B53EE",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 6,
   },
   codeLabel: {
-    color: "rgba(255,255,255,0.8)",
-    fontSize: 14,
-    fontWeight: "500",
-    marginBottom: 8,
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "600",
+    marginBottom: 16,
+  },
+  qrWrap: {
+    backgroundColor: "#FFFFFF",
+    padding: 12,
+    borderRadius: 12,
   },
   codeValue: {
     color: "#FFFFFF",
-    fontSize: 32,
+    fontSize: 30,
     fontWeight: "800",
-    letterSpacing: 3,
+    letterSpacing: 4,
+    marginTop: 16,
     marginBottom: 8,
   },
   codeHint: {
-    color: "rgba(255,255,255,0.7)",
-    fontSize: 13,
+    color: "#FFFFFF",
+    fontSize: 14,
     textAlign: "center",
-    lineHeight: 18,
+    lineHeight: 20,
     marginBottom: 16,
   },
   shareButton: {
     backgroundColor: "#FFFFFF",
     borderRadius: 10,
     paddingHorizontal: 32,
-    paddingVertical: 12,
+    minHeight: 44,
+    justifyContent: "center",
   },
   shareButtonText: {
     color: "#5B53EE",
@@ -197,13 +223,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     color: "#1A1A2E",
-    marginHorizontal: 16,
     marginBottom: 8,
   },
   errorBanner: {
     backgroundColor: "#FEE2E2",
     padding: 12,
-    marginHorizontal: 16,
     borderRadius: 8,
     marginBottom: 8,
   },
@@ -216,7 +240,7 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     flexGrow: 1,
   },
-  referralCard: {
+  riderCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 12,
     padding: 16,
@@ -224,7 +248,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
   },
-  referralAvatar: {
+  riderAvatar: {
     width: 44,
     height: 44,
     borderRadius: 22,
@@ -232,47 +256,43 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  referralAvatarText: {
+  riderAvatarText: {
     color: "#5B53EE",
     fontWeight: "700",
     fontSize: 16,
   },
-  referralInfo: {
+  riderInfo: {
     flex: 1,
   },
-  referralName: {
+  riderName: {
     fontSize: 15,
     fontWeight: "600",
     color: "#1A1A2E",
   },
-  referralJoined: {
+  riderMeta: {
     fontSize: 12,
-    color: "#6B7280",
+    color: "#4B5563",
     marginTop: 2,
   },
-  claimsBadge: {
-    alignItems: "center",
+  earnedBadge: {
+    alignItems: "flex-end",
   },
-  claimsCount: {
-    fontSize: 18,
+  earnedValue: {
+    fontSize: 16,
     fontWeight: "700",
-    color: "#5B53EE",
+    color: "#047857",
   },
-  claimsLabel: {
+  earnedLabel: {
     fontSize: 11,
-    color: "#6B7280",
+    color: "#4B5563",
   },
   separator: {
     height: 8,
   },
   emptyContainer: {
     alignItems: "center",
-    paddingVertical: 48,
+    paddingVertical: 32,
     gap: 8,
-  },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: 8,
   },
   emptyTitle: {
     fontSize: 18,
@@ -281,6 +301,7 @@ const styles = StyleSheet.create({
   },
   emptySubtitle: {
     fontSize: 14,
-    color: "#6B7280",
+    color: "#4B5563",
+    textAlign: "center",
   },
 });
