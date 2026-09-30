@@ -268,12 +268,13 @@ export async function cancelClaim(
   claimId: string
 ): Promise<ApiResult<{ success: boolean }>> {
   try {
-    const { error } = await supabase
-      .from("deal_claims")
-      .update({ status: "cancelled" })
-      .eq("id", claimId);
-
-    if (error) return { data: null, error: error.message };
+    // Riders can't change claim status directly; cancel-claim checks the
+    // claim is theirs and still reserved.
+    const { error } = await supabase.functions.invoke("cancel-claim", { body: { claim_id: claimId } });
+    if (error) {
+      const body = await (error as { context?: Response }).context?.json?.().catch(() => null);
+      return { data: null, error: body?.error ?? error.message };
+    }
     return { data: { success: true }, error: null };
   } catch (err) {
     return { data: null, error: "Failed to cancel claim" };
