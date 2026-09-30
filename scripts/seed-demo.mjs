@@ -413,6 +413,12 @@ async function main() {
         amount: Number(d.ride_credit_amount) + Number(d.driver_kickback_amount) + Number(d.platform_fee_amount),
         status: 'completed',
         created_at: c.completed_at,
+      }, {
+        deal_claim_id: c.id,
+        type: 'ride_reimbursement',
+        amount: Number(d.ride_credit_amount),
+        status: 'completed',
+        created_at: c.completed_at,
       }];
       if (c.referring_driver_id) {
         rows.push({
@@ -529,7 +535,7 @@ async function main() {
     heldIds.add(c.id);
   }
   if (closedCandidates.length) {
-    await rest(`transactions?deal_claim_id=in.(${ids(closedCandidates)})`, { method: 'PATCH', body: { status: 'failed' } });
+    await rest(`transactions?deal_claim_id=in.(${ids(closedCandidates)})`, { method: 'PATCH', body: { status: 'voided' } });
   }
 
   // One visit still waiting on its rider, due in under a day.
@@ -579,12 +585,39 @@ async function main() {
       method: 'PATCH',
       body: { total_earnings: Number(earned.toFixed(2)), payout_balance: Number(unpaid.toFixed(2)) },
     });
+    // Bonuses already paid out were sent in one earlier cash-out.
+    await rest(`driver_transactions?user_id=eq.${appDriver.id}`, { method: 'DELETE' });
+    const paidOut = earned - unpaid;
+    if (paidOut > 0) {
+      await rest('driver_transactions', {
+        method: 'POST',
+        body: [{ user_id: appDriver.id, type: 'cashout', amount: Number(paidOut.toFixed(2)), status: 'completed',
+                 created_at: new Date(now.getTime() - 8 * DAY).toISOString() }],
+      });
+    }
     console.log(`Demo driver: ${referredIds.size} riders, ${bonuses.length} bonuses, ${earned.toFixed(2)} earned, ${unpaid.toFixed(2)} unpaid`);
   } else {
     console.log(`No demo driver (${DEMO_DRIVER_EMAIL}) yet; skipped driver data.`);
   }
   if (appRider) {
-    console.log(`Demo rider: ${inserted.filter((c) => c.rider_user_id === appRider.id).length} claims`);
+    // Ride credit: approved visits add to the balance; one earlier cash-out.
+    const credited = inserted
+      .filter((c) => c.rider_user_id === appRider.id && c.status === 'completed' && !heldIds.has(c.id))
+      .reduce((sum, c) => sum + Number(dealById.get(c.deal_id).ride_credit_amount), 0);
+    const cashedOut = Math.min(credited, 10);
+    await rest(`rider_transactions?user_id=eq.${appRider.id}`, { method: 'DELETE' });
+    if (cashedOut > 0) {
+      await rest('rider_transactions', {
+        method: 'POST',
+        body: [{ user_id: appRider.id, type: 'cashout', amount: cashedOut, status: 'completed',
+                 created_at: new Date(now.getTime() - 9 * DAY).toISOString() }],
+      });
+    }
+    await rest(`rider_profiles?user_id=eq.${appRider.id}`, {
+      method: 'PATCH',
+      body: { balance: Number((credited - cashedOut).toFixed(2)) },
+    });
+    console.log(`Demo rider: ${inserted.filter((c) => c.rider_user_id === appRider.id).length} claims, ${(credited - cashedOut).toFixed(2)} ride credit`);
   } else {
     console.log(`No demo rider (${DEMO_RIDER_EMAIL}) yet; skipped rider data.`);
   }

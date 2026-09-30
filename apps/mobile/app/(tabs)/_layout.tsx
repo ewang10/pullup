@@ -3,7 +3,7 @@
  *
  * Renders a modern floating-style bottom tab bar with Ionicon icons.
  * Tabs are conditionally shown based on the authenticated user's role:
- *   - Riders see: Deals map, Browse, Claims, Profile
+ *   - Riders see: Deals map, Browse, Claims, Wallet, Profile
  *   - Drivers see: Deals map, Browse, My code, Earnings, Profile
  *
  * Each tab includes an accessibility label so screen readers can
@@ -28,7 +28,8 @@ const iconMap: Record<string, { filled: IoniconsName; outline: IoniconsName }> =
   deals: { filled: "pricetag", outline: "pricetag-outline" },
   claims: { filled: "clipboard", outline: "clipboard-outline" },
   referrals: { filled: "people", outline: "people-outline" },
-  earnings: { filled: "wallet", outline: "wallet-outline" },
+  earnings: { filled: "cash", outline: "cash-outline" },
+  wallet: { filled: "wallet", outline: "wallet-outline" },
   profile: { filled: "person", outline: "person-outline" },
 };
 
@@ -90,13 +91,25 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="claims"
         options={{
-          title: "My Claims",
-          headerTitle: "My Claims",
+          title: "Claims",
+          headerTitle: "My claims",
           tabBarAccessibilityLabel: "View my claimed deals",
           tabBarIcon: ({ focused }) => (
             <TabIcon name="claims" focused={focused} />
           ),
           href: isDriver ? null : "/(tabs)/claims",
+        }}
+      />
+      <Tabs.Screen
+        name="wallet"
+        options={{
+          title: "Wallet",
+          headerTitle: "Wallet",
+          tabBarAccessibilityLabel: "Ride credit and cash out",
+          tabBarIcon: ({ focused }) => (
+            <TabIcon name="wallet" focused={focused} />
+          ),
+          href: isDriver ? null : "/(tabs)/wallet",
         }}
       />
       <Tabs.Screen

@@ -76,6 +76,13 @@ export async function middleware(request: NextRequest) {
       url.pathname = '/login';
       return NextResponse.redirect(url);
     }
+    // The team page is for admins only.
+    const adminOnly = pathname === '/staff/team' || pathname.startsWith('/staff/team/');
+    if (isStaffRole(role) && adminOnly && role !== 'platform_admin') {
+      const url = request.nextUrl.clone();
+      url.pathname = '/staff/drivers';
+      return NextResponse.redirect(url);
+    }
     if (!isStaffRole(role)) {
       const url = request.nextUrl.clone();
       url.pathname = '/login';

@@ -20,6 +20,10 @@ interface DealFormData {
   daily_cap: number;
   hold_duration_minutes: number;
   is_active: boolean;
+  /** Rider uploads their rideshare receipt after the visit */
+  requires_ride_receipt: boolean;
+  /** Rider uploads the bill; also gives you real spend data */
+  requires_venue_receipt: boolean;
 }
 
 interface DealFormProps {
@@ -37,7 +41,17 @@ const defaultFormData: DealFormData = {
   daily_cap: 50,
   hold_duration_minutes: 120,
   is_active: true,
+  requires_ride_receipt: true,
+  requires_venue_receipt: false,
 };
+
+/** Turn database permission errors into something a venue owner can act on. */
+function friendlySaveError(message: string): string {
+  if (/row-level security/i.test(message)) {
+    return "This deal can't be published right now. Make sure a bank account is linked on the Billing page and that no payment is overdue.";
+  }
+  return message;
+}
 
 export default function DealForm({ initialData, venueId, mode }: DealFormProps) {
   const router = useRouter();
@@ -92,8 +106,9 @@ export default function DealForm({ initialData, venueId, mode }: DealFormProps) 
       router.push('/deals');
       router.refresh();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to save deal';
-      setError(message);
+      const message =
+        err instanceof Error ? err.message : (err as { message?: string })?.message ?? 'Failed to save deal';
+      setError(friendlySaveError(message));
     } finally {
       setLoading(false);
     }
@@ -249,6 +264,46 @@ export default function DealForm({ initialData, venueId, mode }: DealFormProps) 
           <p id="hold-help" className="text-xs text-gray-600 mt-1">After this, an unused claim expires at no charge.</p>
         </div>
       </div>
+
+      <fieldset className="rounded-lg border border-gray-300 p-4">
+        <legend className="px-1 text-sm font-medium text-gray-900">Proof of visit</legend>
+        <p className="text-xs text-gray-600 mb-3">
+          Riders upload these after checking in. You&apos;re only charged once they&apos;re approved, and visits without
+          them within 7 days aren&apos;t charged.
+        </p>
+        <div className="space-y-3">
+          <label className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              checked={formData.requires_ride_receipt}
+              onChange={(e) => setFormData((prev) => ({ ...prev, requires_ride_receipt: e.target.checked }))}
+              className="mt-1 h-4 w-4"
+              aria-describedby="ride-receipt-help"
+            />
+            <span>
+              <span className="block text-sm font-medium text-gray-900">Ride receipt</span>
+              <span id="ride-receipt-help" className="block text-xs text-gray-600">
+                Confirms the rider took a rideshare here, so the ride credit is earned.
+              </span>
+            </span>
+          </label>
+          <label className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              checked={formData.requires_venue_receipt}
+              onChange={(e) => setFormData((prev) => ({ ...prev, requires_venue_receipt: e.target.checked }))}
+              className="mt-1 h-4 w-4"
+              aria-describedby="venue-receipt-help"
+            />
+            <span>
+              <span className="block text-sm font-medium text-gray-900">Venue receipt (your bill)</span>
+              <span id="venue-receipt-help" className="block text-xs text-gray-600">
+                Confirms they bought something, and shows you what PullUp customers actually spend.
+              </span>
+            </span>
+          </label>
+        </div>
+      </fieldset>
 
       <div className="flex items-center gap-3">
         <label htmlFor="is_active" className="text-sm font-medium text-gray-700">

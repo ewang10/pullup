@@ -8,7 +8,9 @@ import {
   RefreshControl,
 } from "react-native";
 import { useAppStore } from "../../lib/store";
-import { fetchDriverStats } from "../../lib/api";
+import { useAuth } from "../../lib/auth";
+import { fetchDriverPayouts, fetchDriverStats, type PayoutAccount } from "../../lib/api";
+import { PayoutHistory, PayoutsCard } from "../../components/PayoutsCard";
 
 function StatCard({
   label,
@@ -29,24 +31,31 @@ function StatCard({
 
 export default function EarningsScreen() {
   const { driverStats, setDriverStats } = useAppStore();
+  const { session } = useAuth();
+  const userId = session?.user.id;
+  const [payouts, setPayouts] = useState<PayoutAccount | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const loadStats = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const { data, error: err } = await fetchDriverStats();
+    const [{ data, error: err }, payoutResult] = await Promise.all([
+      fetchDriverStats(),
+      userId ? fetchDriverPayouts(userId) : Promise.resolve(null),
+    ]);
     if (err) {
       setError(err);
     } else if (data) {
       setDriverStats(data);
     }
+    if (payoutResult?.data) setPayouts(payoutResult.data);
     setLoading(false);
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     loadStats();
-  }, []);
+  }, [loadStats]);
 
   if (loading && !driverStats) {
     return (
@@ -82,18 +91,18 @@ export default function EarningsScreen() {
         </View>
       )}
 
-      <View style={styles.earningsHero}>
-        <Text style={styles.heroLabel}>Total Earnings</Text>
+      <View style={styles.earningsHero} accessible accessibilityLabel={`Total earned ${stats.total_earnings.toFixed(2)} dollars`}>
+        <Text style={styles.heroLabel}>Total earned</Text>
         <Text style={styles.heroValue}>
           ${stats.total_earnings.toFixed(2)}
         </Text>
-        <View style={styles.pendingRow}>
-          <View style={styles.pendingDot} />
-          <Text style={styles.pendingText}>
-            ${stats.payout_balance.toFixed(2)} pending
-          </Text>
-        </View>
       </View>
+
+      {payouts && (
+        <View style={styles.payoutsBlock}>
+          <PayoutsCard kind="driver" account={payouts} onChanged={loadStats} />
+        </View>
+      )}
 
       <View style={styles.statsGrid}>
         <StatCard
@@ -107,6 +116,12 @@ export default function EarningsScreen() {
           color="#047857"
         />
       </View>
+
+      {payouts && (
+        <View style={styles.payoutsBlock}>
+          <PayoutHistory account={payouts} emptyText="Bonuses you earn and cash-outs will show here." />
+        </View>
+      )}
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>How Earnings Work</Text>
@@ -182,7 +197,7 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   heroLabel: {
-    color: "rgba(255,255,255,0.8)",
+    color: "#FFFFFF",
     fontSize: 15,
     fontWeight: "500",
     marginBottom: 4,
@@ -193,21 +208,8 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     marginBottom: 8,
   },
-  pendingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  pendingDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#B45309",
-  },
-  pendingText: {
-    color: "rgba(255,255,255,0.8)",
-    fontSize: 14,
-    fontWeight: "500",
+  payoutsBlock: {
+    marginBottom: 16,
   },
   statsGrid: {
     flexDirection: "row",

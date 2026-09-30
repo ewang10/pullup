@@ -486,3 +486,152 @@ export async function fetchDriverRiders(): Promise<ApiResult<DriverRider[]>> {
     return { data: null, error: "Failed to fetch riders" };
   }
 }
+
+// ── Payouts (Stripe Connect) ──────────────────────────────────
+
+export type PayoutKind = "driver" | "rider";
+
+const PAYOUT_FUNCTIONS: Record<PayoutKind, { connect: string; cashout: string }> = {
+  driver: { connect: "create-driver-connect-account", cashout: "cashout-driver" },
+  rider: { connect: "create-connect-account", cashout: "cashout" },
+};
+
+async function functionErrorMessage(error: unknown): Promise<string> {
+  const body = await (error as { context?: Response }).context?.json?.().catch(() => null);
+  return body?.error ?? (error instanceof Error ? error.message : "Something went wrong");
+}
+
+/**
+ * Get a Stripe link: onboarding for new payout accounts, or the Stripe
+ * Express dashboard once set up. Identity and bank details are entered on
+ * Stripe's site, never in PullUp.
+ */
+export async function getPayoutLink(kind: PayoutKind): Promise<ApiResult<{ url: string }>> {
+  try {
+    const { data, error } = await supabase.functions.invoke(PAYOUT_FUNCTIONS[kind].connect, { body: {} });
+    if (error) return { data: null, error: await functionErrorMessage(error) };
+    if (!data?.url) return { data: null, error: "Stripe didn't return a link. Try again." };
+    return { data: { url: data.url as string }, error: null };
+  } catch {
+    return { data: null, error: "Failed to open payout setup" };
+  }
+}
+
+/** Transfer the full available balance to the user's payout account. */
+export async function cashOut(kind: PayoutKind): Promise<ApiResult<{ amount: number }>> {
+  try {
+    const { data, error } = await supabase.functions.invoke(PAYOUT_FUNCTIONS[kind].cashout, { body: {} });
+    if (error) return { data: null, error: await functionErrorMessage(error) };
+    return { data: { amount: Number(data?.amount ?? 0) }, error: null };
+  } catch {
+    return { data: null, error: "Cash out failed" };
+  }
+}
+
+export interface PayoutHistoryItem {
+  id: string;
+  kind: "earned" | "cashout";
+  label: string;
+  amount: number;
+  status: string;
+  at: string;
+}
+
+export interface PayoutAccount {
+  balance: number;
+  onboardingComplete: boolean;
+  onHold: boolean;
+  history: PayoutHistoryItem[];
+}
+
+/** Driver: bonuses earned (per visit) and cash-outs, newest first. */
+export async function fetchDriverPayouts(userId: string): Promise<ApiResult<PayoutAccount>> {
+  try {
+    const [profile, bonuses, cashouts, stats] = await Promise.all([
+      supabase.from("driver_profiles").select("stripe_onboarding_complete, payouts_on_hold").eq("user_id", userId).single(),
+      supabase.rpc("get_driver_kickback_history"),
+      supabase.from("driver_transactions").select("id, amount, status, created_at").order("created_at", { ascending: false }).limit(50),
+      fetchDriverStats(),
+    ]);
+    if (profile.error) return { data: null, error: profile.error.message };
+    const history: PayoutHistoryItem[] = [
+      ...((bonuses.data ?? []) as { transaction_id: string; venue_name: string; amount: number; kickback_paid: boolean; earned_at: string }[]).map((b) => ({
+        id: b.transaction_id,
+        kind: "earned" as const,
+        label: `Bonus · ${b.venue_name}`,
+        amount: Number(b.amount),
+        status: b.kickback_paid ? "Paid out" : "Available",
+        at: b.earned_at,
+      })),
+      ...((cashouts.data ?? []) as { id: string; amount: number; status: string; created_at: string }[]).map((c) => ({
+        id: c.id,
+        kind: "cashout" as const,
+        label: "Cash out to bank",
+        amount: Number(c.amount),
+        status: c.status === "completed" ? "Sent" : c.status === "failed" ? "Failed" : "Processing",
+        at: c.created_at,
+      })),
+    ].sort((a, b) => b.at.localeCompare(a.at));
+    return {
+      data: {
+        balance: stats.data?.payout_balance ?? 0,
+        onboardingComplete: Boolean(profile.data.stripe_onboarding_complete),
+        onHold: Boolean(profile.data.payouts_on_hold),
+        history,
+      },
+      error: null,
+    };
+  } catch {
+    return { data: null, error: "Failed to load payouts" };
+  }
+}
+
+/** Rider: ride credits earned on approved visits and cash-outs, newest first. */
+export async function fetchRiderWallet(userId: string): Promise<ApiResult<PayoutAccount>> {
+  try {
+    const [profile, credits, cashouts] = await Promise.all([
+      supabase.from("rider_profiles").select("balance, stripe_onboarding_complete").eq("user_id", userId).single(),
+      supabase
+        .from("transactions")
+        .select("id, amount, status, created_at, deal_claim:deal_claims!inner(rider_user_id, deal:deals(title))")
+        .eq("type", "ride_reimbursement")
+        .eq("deal_claim.rider_user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(50),
+      supabase.from("rider_transactions").select("id, amount, status, created_at").order("created_at", { ascending: false }).limit(50),
+    ]);
+    if (profile.error) return { data: null, error: profile.error.message };
+    type CreditRow = { id: string; amount: number; status: string; created_at: string; deal_claim: { deal: { title: string } | null } };
+    const history: PayoutHistoryItem[] = [
+      ...((credits.data ?? []) as unknown as CreditRow[])
+        .filter((t) => t.status !== "voided")
+        .map((t) => ({
+          id: t.id,
+          kind: "earned" as const,
+          label: `Ride credit · ${t.deal_claim?.deal?.title ?? "Deal"}`,
+          amount: Number(t.amount),
+          status: t.status === "completed" ? "Added" : t.status === "failed" ? "Failed" : "Waiting for receipts",
+          at: t.created_at,
+        })),
+      ...((cashouts.data ?? []) as { id: string; amount: number; status: string; created_at: string }[]).map((c) => ({
+        id: c.id,
+        kind: "cashout" as const,
+        label: "Cash out to bank",
+        amount: Number(c.amount),
+        status: c.status === "completed" ? "Sent" : c.status === "failed" ? "Failed" : "Processing",
+        at: c.created_at,
+      })),
+    ].sort((a, b) => b.at.localeCompare(a.at));
+    return {
+      data: {
+        balance: Number(profile.data.balance ?? 0),
+        onboardingComplete: Boolean(profile.data.stripe_onboarding_complete),
+        onHold: false,
+        history,
+      },
+      error: null,
+    };
+  } catch {
+    return { data: null, error: "Failed to load wallet" };
+  }
+}

@@ -4,10 +4,13 @@
  * Lists what the venue has been charged: one charge per completed visit,
  * split into the rider's ride credit, the driver's referral bonus and
  * PullUp's fee. Transactions link to a venue through deal_claims -> deals.
+ * Also: link the bank account charges are debited from, and recover from a
+ * failed payment (deals are paused until a failed charge is paid).
  */
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import PaymentMethodCard, { type BankInfo } from '@/components/PaymentMethodCard';
 import { createSupabaseBrowserClient } from '@/lib/supabase-client';
 import { formatCurrency } from '@/lib/claims';
 import { SPLIT_DRIVER_KICKBACK, SPLIT_PLATFORM_FEE, SPLIT_RIDE_CREDIT } from '@pullup/shared';
@@ -18,15 +21,16 @@ interface Charge {
   ride_credit_amount: number;
   driver_kickback_amount: number;
   platform_fee_amount: number;
-  status: 'pending' | 'completed' | 'failed';
+  status: 'pending' | 'completed' | 'failed' | 'voided';
   created_at: string;
 }
 
 const STATUS: Record<Charge['status'], { label: string; className: string }> = {
   completed: { label: 'Paid', className: 'bg-green-100 text-green-900' },
   pending: { label: 'Processing', className: 'bg-yellow-100 text-yellow-900' },
-  // Payment failures and visits closed without approved receipts.
-  failed: { label: 'Not charged', className: 'bg-gray-100 text-gray-800' },
+  failed: { label: 'Payment failed', className: 'bg-red-100 text-red-900' },
+  // Visits closed without approved receipts: never charged.
+  voided: { label: 'Not charged', className: 'bg-gray-100 text-gray-800' },
 };
 
 const pct = (n: number) => `${Math.round(n * 100)}%`;
@@ -36,6 +40,14 @@ export default function BillingPage() {
   const supabase = createSupabaseBrowserClient();
   const [charges, setCharges] = useState<Charge[]>([]);
   const [loading, setLoading] = useState(true);
+  const [venue, setVenue] = useState<{ id: string; name: string; payment_suspended: boolean } | null>(null);
+  const [bank, setBank] = useState<BankInfo | null>(null);
+  const [email, setEmail] = useState('');
+  const [retrying, setRetrying] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+  const reload = useCallback(() => setReloadKey((k) => k + 1), []);
 
   useEffect(() => {
     async function fetchBillingData() {
@@ -43,12 +55,17 @@ export default function BillingPage() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
+        setEmail(user.email ?? '');
         const { data: venue } = await supabase
           .from('venues')
-          .select('id')
+          .select('id, name, payment_suspended')
           .eq('owner_user_id', user.id)
           .single();
         if (!venue) return;
+        setVenue(venue);
+        // Bank details are private to the owner (not readable from the table).
+        const { data: privateRows } = await supabase.rpc('get_my_venue_private');
+        setBank(((privateRows as BankInfo[] | null) ?? [])[0] ?? null);
 
         // The per-party breakdown lives on the deal. RLS limits results to
         // this admin's venue; the venue filter keeps the query explicit.
@@ -82,7 +99,23 @@ export default function BillingPage() {
     }
 
     fetchBillingData();
-  }, [supabase]);
+  }, [supabase, reloadKey]);
+
+  const retry = async (charge: Charge) => {
+    setRetrying(charge.id);
+    setError(null);
+    const { error: fnError } = await supabase.functions.invoke('retry-venue-payment', {
+      body: { transaction_id: charge.id },
+    });
+    setRetrying(null);
+    if (fnError) {
+      const body = await (fnError as { context?: Response }).context?.json?.().catch(() => null);
+      setError(body?.error ?? fnError.message);
+      return;
+    }
+    setNotice(`Retrying the ${formatCurrency(total(charge))} charge for "${charge.deal_title}". It will show as Processing until the bank confirms.`);
+    reload();
+  };
 
   if (loading) {
     return (
@@ -96,6 +129,7 @@ export default function BillingPage() {
   const paid = charges.filter((c) => c.status === 'completed');
   const totalPaid = paid.reduce((s, c) => s + total(c), 0);
   const processing = charges.filter((c) => c.status === 'pending').reduce((s, c) => s + total(c), 0);
+  const failedCharges = charges.filter((c) => c.status === 'failed');
 
   return (
     <div>
@@ -104,6 +138,30 @@ export default function BillingPage() {
         You pay PullUp only when a rider completes a visit. The discount you offer is given at your
         register and isn&apos;t charged here, and you keep everything the customer spends.
       </p>
+
+      {(venue?.payment_suspended || failedCharges.length > 0) && (
+        <section role="alert" className="mb-8 p-4 rounded-lg border border-red-300 bg-red-50" aria-labelledby="payment-problem-heading">
+          <h2 id="payment-problem-heading" className="font-semibold text-red-900">
+            {venue?.payment_suspended ? 'Your deals are paused' : 'A payment failed'}
+          </h2>
+          <p className="mt-1 text-red-900">
+            {failedCharges.length} charge{failedCharges.length === 1 ? '' : 's'} couldn&apos;t be collected
+            {venue?.payment_suspended ? ", so riders can't claim your deals right now" : ''}. Check your bank account,
+            change it below if needed, then retry. Your deals come back automatically once the payment goes through.
+          </p>
+        </section>
+      )}
+
+      <div aria-live="polite">
+        {notice && <p className="mb-4 p-3 rounded-lg bg-green-50 border border-green-200 text-green-900 text-sm">{notice}</p>}
+      </div>
+      {error && (
+        <p role="alert" className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-800 text-sm">
+          {error}
+        </p>
+      )}
+
+      <PaymentMethodCard bank={bank} venueName={venue?.name ?? ''} email={email} onLinked={reload} />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <section className="card" aria-labelledby="total-paid-label">
@@ -176,6 +234,17 @@ export default function BillingPage() {
                       <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${STATUS[c.status].className}`}>
                         {STATUS[c.status].label}
                       </span>
+                      {c.status === 'failed' && (
+                        <button
+                          type="button"
+                          onClick={() => retry(c)}
+                          disabled={retrying === c.id}
+                          className="ml-2 text-sm font-medium text-primary hover:text-primary-600 underline-offset-2 hover:underline disabled:opacity-50"
+                          aria-label={`Retry the ${formatCurrency(total(c))} payment for ${c.deal_title}`}
+                        >
+                          {retrying === c.id ? 'Retrying…' : 'Retry'}
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

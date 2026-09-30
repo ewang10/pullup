@@ -14,6 +14,7 @@ import {
   Pressable,
   ActivityIndicator,
   Alert,
+  Image,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import MapView, { Marker } from "react-native-maps";
@@ -119,8 +120,20 @@ export default function DealDetailScreen() {
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        {deal.venue.image_url && (
+          <Image
+            source={{ uri: deal.venue.image_url }}
+            style={styles.venuePhoto}
+            accessible
+            accessibilityRole="image"
+            accessibilityLabel={`Photo of ${deal.venue.name}`}
+            resizeMode="cover"
+          />
+        )}
         <MapView
           style={styles.map}
+          accessible
+          accessibilityLabel={`Map showing ${deal.venue.name} at ${deal.venue.address}`}
           initialRegion={{
             latitude: deal.venue.latitude,
             longitude: deal.venue.longitude,
@@ -211,6 +224,11 @@ export default function DealDetailScreen() {
 }
 
 const styles = StyleSheet.create({
+  venuePhoto: {
+    width: "100%",
+    aspectRatio: 16 / 9,
+    backgroundColor: "#E5E7EB",
+  },
   container: {
     flex: 1,
     backgroundColor: "#F8F9FA",

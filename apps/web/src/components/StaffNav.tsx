@@ -7,7 +7,9 @@ import { createSupabaseBrowserClient } from '@/lib/supabase-client';
 const LINKS = [
   { href: '/staff/drivers', label: 'Drivers' },
   { href: '/staff/receipts', label: 'Receipts' },
+  { href: '/staff/venues', label: 'Venues' },
 ];
+const ADMIN_LINKS = [{ href: '/staff/team', label: 'Team' }];
 
 export default function StaffNav({ name, isAdmin }: { name: string; isAdmin: boolean }) {
   const pathname = usePathname() ?? '';
@@ -26,8 +28,8 @@ export default function StaffNav({ name, isAdmin }: { name: string; isAdmin: boo
           Pull<span className="text-primary-300">Up</span>{' '}
           <span className="text-sm font-medium text-gray-300">{isAdmin ? 'Admin' : 'Support'}</span>
         </p>
-        <nav aria-label="Staff navigation" className="flex gap-1">
-          {LINKS.map((l) => {
+        <nav aria-label="Staff navigation" className="flex flex-wrap gap-1">
+          {[...LINKS, ...(isAdmin ? ADMIN_LINKS : [])].map((l) => {
             const active = pathname.startsWith(l.href);
             return (
               <Link

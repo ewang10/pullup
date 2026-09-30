@@ -41,6 +41,15 @@ serve(async (req) => {
       });
     }
 
+    // The public demo shares its admin password, so invites (which send email)
+    // are turned off there.
+    if (Deno.env.get('DEMO_MODE') === 'true') {
+      return new Response(JSON.stringify({ error: 'Invites are turned off in the public demo.' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const { email, full_name, role } = await req.json();
 
     if (!email || !full_name || !role) {
@@ -73,6 +82,19 @@ serve(async (req) => {
     if (createError) {
       return new Response(JSON.stringify({ error: createError.message }), {
         status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Sign-up metadata can't grant platform roles (handle_new_user only
+    // allows rider/driver/venue_admin), so set the role with the service role.
+    const { error: roleError } = await adminSupabase
+      .from('users')
+      .update({ role, full_name })
+      .eq('id', newUser.user.id);
+    if (roleError) {
+      return new Response(JSON.stringify({ error: 'Invited, but the role could not be set: ' + roleError.message }), {
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }

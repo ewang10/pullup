@@ -10,6 +10,7 @@
 import { useEffect, useState } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase-client';
 import { US_STATES, VENUE_CATEGORIES } from '@pullup/shared';
+import VenuePhotoCard from '@/components/VenuePhotoCard';
 
 interface VenueProfile {
   id: string;
@@ -134,16 +135,18 @@ export default function SettingsPage() {
           role="alert"
           className={`mb-6 p-3 rounded-lg text-sm ${
             message.type === 'success'
-              ? 'bg-green-50 border border-green-200 text-green-700'
-              : 'bg-red-50 border border-red-200 text-red-700'
+              ? 'bg-green-50 border border-green-200 text-green-900'
+              : 'bg-red-50 border border-red-200 text-red-800'
           }`}
         >
           {message.text}
         </div>
       )}
 
+      {profile.id && <VenuePhotoCard venueId={profile.id} venueName={profile.name} />}
+
       <div className="card mb-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Venue Profile</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Venue profile</h2>
 
         <form onSubmit={handleSave} className="space-y-4 max-w-2xl">
           <div>

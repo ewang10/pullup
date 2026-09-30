@@ -6,21 +6,34 @@
  * - suspended: an admin paused an approved account; shows the reason and
  *   whether already-earned bonuses will still be paid
  */
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { View, Text, StyleSheet, Pressable, ScrollView, Linking, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { RIDESHARE_PLATFORMS, type DriverProfile } from "@pullup/shared";
 import { useAuth } from "../lib/auth";
+import { fetchDriverPayouts, type PayoutAccount } from "../lib/api";
+import { PayoutsCard } from "./PayoutsCard";
 
 const SUPPORT_EMAIL = process.env.EXPO_PUBLIC_SUPPORT_EMAIL;
 
 export default function DriverReviewStatus({ driverProfile }: { driverProfile: DriverProfile }) {
-  const { refreshProfile, signOut, profile } = useAuth();
+  const { refreshProfile, signOut, profile, session } = useAuth();
   const [checking, setChecking] = useState(false);
   const suspended = driverProfile.verification_status === "suspended";
   // Rejected and suspended drivers both see the reason and a support link.
   const rejected = driverProfile.verification_status === "rejected" || suspended;
   const unpaid = Number(driverProfile.payout_balance ?? 0);
+  // Suspended drivers keep what they earned and can still cash it out (unless held).
+  const [payouts, setPayouts] = useState<PayoutAccount | null>(null);
+  const userId = session?.user.id;
+  const loadPayouts = useCallback(async () => {
+    if (!suspended || !userId) return;
+    const { data } = await fetchDriverPayouts(userId);
+    if (data) setPayouts(data);
+  }, [suspended, userId]);
+  useEffect(() => {
+    loadPayouts();
+  }, [loadPayouts]);
   const platform =
     RIDESHARE_PLATFORMS.find((p) => p.value === driverProfile.rideshare_platform)?.label ?? "Not provided";
 
@@ -67,7 +80,10 @@ export default function DriverReviewStatus({ driverProfile }: { driverProfile: D
                 {driverProfile.verification_note ?? "No reason was given. Contact support for details."}
               </Text>
             </View>
-            {suspended && unpaid > 0 && (
+            {suspended && payouts && !payouts.onHold && payouts.balance > 0 && (
+              <PayoutsCard kind="driver" account={payouts} onChanged={loadPayouts} />
+            )}
+            {suspended && unpaid > 0 && (!payouts || payouts.onHold) && (
               <View style={[styles.reasonBox, driverProfile.payouts_on_hold ? null : styles.moneyBoxOk]}>
                 <Text style={[styles.reasonLabel, driverProfile.payouts_on_hold ? null : styles.moneyLabelOk]}>
                   Your earned bonuses: ${unpaid.toFixed(2)}

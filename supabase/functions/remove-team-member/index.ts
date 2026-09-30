@@ -56,6 +56,17 @@ serve(async (req) => {
       });
     }
 
+    // The public demo shares its admin password: keep the demo accounts.
+    if (Deno.env.get('DEMO_MODE') === 'true') {
+      const { data: target } = await adminSupabase.from('users').select('email').eq('id', target_user_id).single();
+      if (target?.email?.startsWith('pullup.demo.app+')) {
+        return new Response(JSON.stringify({ error: "Demo accounts can't be removed in the public demo." }), {
+          status: 403,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
     // Prevent self-removal
     if (target_user_id === user.id) {
       return new Response(JSON.stringify({ error: 'You cannot remove yourself' }), {

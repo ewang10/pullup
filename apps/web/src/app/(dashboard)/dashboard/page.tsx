@@ -79,6 +79,9 @@ export default function DashboardPage() {
   const [recentClaims, setRecentClaims] = useState<ClaimRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [avgCheck, setAvgCheck] = useState<number | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [live, setLive] = useState(false);
+  const [liveMessage, setLiveMessage] = useState('');
   const [receiptSpend, setReceiptSpend] = useState<{ average: number; count: number } | null>(null);
 
   useEffect(() => {
@@ -201,7 +204,32 @@ export default function DashboardPage() {
     }
 
     fetchDashboardData();
+  }, [supabase, refreshKey]);
+
+  // Live updates: refresh when a claim on this venue changes. Realtime applies
+  // RLS, so a venue only receives events for its own claims.
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const channel = supabase
+      .channel('venue-claims')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'deal_claims' }, (payload) => {
+        if (payload.eventType === 'INSERT') setLiveMessage('New claim received.');
+        clearTimeout(timer);
+        timer = setTimeout(() => setRefreshKey((k) => k + 1), 1000);
+      })
+      .subscribe((status) => setLive(status === 'SUBSCRIBED'));
+    return () => {
+      clearTimeout(timer);
+      supabase.removeChannel(channel);
+    };
   }, [supabase]);
+
+  // Clear the announcement so repeated events are announced again.
+  useEffect(() => {
+    if (!liveMessage) return;
+    const t = setTimeout(() => setLiveMessage(''), 4000);
+    return () => clearTimeout(t);
+  }, [liveMessage]);
 
   if (loading) {
     return (
@@ -220,7 +248,17 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+      <div className="flex flex-wrap items-center gap-3">
+        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        {live && (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-900">
+            <span className="h-2 w-2 rounded-full bg-green-700" aria-hidden="true" />
+            Live
+            <span className="sr-only">: updates automatically when riders claim your deals</span>
+          </span>
+        )}
+      </div>
+      <p className="sr-only" aria-live="polite">{liveMessage}</p>
       <p className="text-gray-600 mt-1 mb-6">Your last 30 days on PullUp.</p>
 
       <EstimatedSalesCard

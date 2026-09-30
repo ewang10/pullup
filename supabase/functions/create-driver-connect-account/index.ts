@@ -59,25 +59,25 @@ serve(async (req) => {
     }
 
     const html = `<!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>PullUp</title>
+  <title>PullUp payouts</title>
   <style>
     body { font-family: -apple-system, system-ui, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: #F8F9FA; }
     .card { text-align: center; padding: 40px; max-width: 400px; }
-    h1 { color: #6C63FF; font-size: 24px; margin-bottom: 8px; }
-    p { color: #6B7280; font-size: 16px; line-height: 1.5; }
+    h1 { color: #4338CA; font-size: 24px; margin-bottom: 8px; }
+    p { color: #374151; font-size: 16px; line-height: 1.5; }
   </style>
 </head>
 <body>
-  <div class="card">
+  <main class="card">
     <h1>${isComplete ? 'Setup Complete!' : 'Session Expired'}</h1>
     <p>${isComplete
       ? 'Your payout method has been set up. You can close this page and return to the PullUp app.'
       : 'Your session expired. Please go back to the PullUp app and try again.'}</p>
-  </div>
+  </main>
 </body>
 </html>`;
 

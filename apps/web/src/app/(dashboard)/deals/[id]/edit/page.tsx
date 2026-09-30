@@ -18,6 +18,8 @@ interface DealData {
   daily_cap: number;
   hold_duration_minutes: number;
   is_active: boolean;
+  requires_ride_receipt: boolean;
+  requires_venue_receipt: boolean;
 }
 
 export default function EditDealPage() {
@@ -80,6 +82,8 @@ export default function EditDealPage() {
             daily_cap: deal.daily_cap,
             hold_duration_minutes: deal.hold_duration_minutes,
             is_active: deal.is_active,
+            requires_ride_receipt: deal.requires_ride_receipt,
+            requires_venue_receipt: deal.requires_venue_receipt,
           }}
         />
       </div>
