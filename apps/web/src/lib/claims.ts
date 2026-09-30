@@ -36,6 +36,18 @@ export const CLAIM_STATUS: Record<ClaimStatus, { label: string; hint: string; cl
   },
 };
 
+/** A completed visit whose required receipts weren't approved by the deadline. */
+export const NOT_VERIFIED_STATUS = {
+  label: 'Not verified',
+  hint: "Receipts weren't provided in time; no charge",
+  className: 'bg-gray-100 text-gray-800',
+};
+
+/** Counts as a completed (chargeable) visit. */
+export function isChargeableVisit(c: { status: string; unverified_at?: string | null }): boolean {
+  return c.status === 'completed' && !c.unverified_at;
+}
+
 export interface CostBreakdown {
   ride_credit_amount: number;
   driver_kickback_amount: number;

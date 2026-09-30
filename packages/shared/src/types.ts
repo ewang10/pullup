@@ -67,8 +67,10 @@ export interface DriverProfile {
   is_verified: boolean;
   /** Staff review outcome; drivers can only use the app once approved */
   verification_status: DriverVerificationStatus;
-  /** Reason shown to the driver when staff reject the application */
+  /** Reason shown to the driver when staff reject or suspend them */
   verification_note: string | null;
+  /** Admin hold on cashing out earned bonuses (suspected fraud) */
+  payouts_on_hold: boolean;
   /** ISO-8601 timestamp of the latest staff review */
   reviewed_at: string | null;
   /** Rideshare platform given at sign-up, checked by staff */
@@ -79,7 +81,7 @@ export interface DriverProfile {
   created_at: string;
 }
 
-export type DriverVerificationStatus = 'pending' | 'approved' | 'rejected';
+export type DriverVerificationStatus = 'pending' | 'approved' | 'rejected' | 'suspended';
 
 export type RidesharePlatform = 'uber' | 'lyft' | 'both' | 'other';
 
@@ -184,6 +186,10 @@ export interface DealClaim {
   venue_receipt_url: string | null;
   /** Staff review state of the venue receipt; null until uploaded */
   venue_receipt_status: ReceiptReviewStatus | null;
+  /** Admin-extended receipt deadline; default is completed_at + 7 days */
+  receipt_due_at: string | null;
+  /** Set when receipts weren't approved in time; the visit isn't charged or credited */
+  unverified_at: string | null;
   /** Whether the ride credit has been paid to the rider */
   ride_credit_paid: boolean;
   /** Whether the driver kickback has been paid */

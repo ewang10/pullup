@@ -26,7 +26,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import { fetchMyClaims, cancelClaim, uploadReceipt, linkDriver } from "../../lib/api";
 import type { DealClaimWithDeal, ClaimStatus } from "@pullup/shared";
-import { CLAIM_STATUSES, parseDriverCode, type ReceiptType } from "@pullup/shared";
+import { CLAIM_STATUSES, parseDriverCode, receiptDeadline, type ReceiptType } from "@pullup/shared";
 
 // ── Countdown hook ───────────────────────────────────────────
 
@@ -584,14 +584,26 @@ export default function ClaimDetailScreen() {
           <View style={styles.card}>
             <Text style={styles.driverTitle} accessibilityRole="header">Receipts needed</Text>
             <Text style={styles.driverText}>
-              {allReceiptsApproved
+              {claim.unverified_at
+                ? `This visit closed on ${new Date(claim.unverified_at).toLocaleDateString([], { month: "short", day: "numeric" })} because the receipts weren't approved in time, so no ride credit was added.`
+                : allReceiptsApproved
                 ? "All receipts approved. Your ride credit has been added."
                 : `Upload ${requiredReceipts.length === 1 ? "this receipt" : "these receipts"} to get your ${claim.deal.ride_credit_amount} ride credit. We release it once ${requiredReceipts.length === 1 ? "it's" : "they're"} approved.`}
             </Text>
+            {!claim.unverified_at && !allReceiptsApproved && (
+              <Text style={styles.receiptDeadline}>
+                Upload by{" "}
+                {receiptDeadline(claim.completed_at ?? claim.reserved_at, claim.receipt_due_at).toLocaleDateString([], {
+                  weekday: "short",
+                  month: "short",
+                  day: "numeric",
+                })}
+              </Text>
+            )}
             {requiredReceipts.map((r) => {
               const status = r.status ?? (r.url ? "pending_review" : "missing");
               const meta = RECEIPT_STATUS[status];
-              const canUpload = status === "missing" || status === "rejected";
+              const canUpload = !claim.unverified_at && (status === "missing" || status === "rejected");
               return (
                 <View key={r.type} style={styles.receiptRow}>
                   <View style={styles.receiptInfo}>
@@ -648,7 +660,13 @@ export default function ClaimDetailScreen() {
           <View style={styles.detailItem}>
             <Text style={styles.detailLabel}>Receipts</Text>
             <Text style={styles.detailValue}>
-              {requiredReceipts.length === 0 ? "Not needed" : allReceiptsApproved ? "Approved" : "Needed"}
+              {requiredReceipts.length === 0
+                ? "Not needed"
+                : allReceiptsApproved
+                ? "Approved"
+                : claim.unverified_at
+                ? "Missed"
+                : "Needed"}
             </Text>
           </View>
           <View style={styles.detailItem}>
@@ -709,6 +727,12 @@ const RECEIPT_STATUS: Record<string, { label: string; bg: string; text: string }
 };
 
 const styles = StyleSheet.create({
+  receiptDeadline: {
+    marginTop: 8,
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#92400E",
+  },
   receiptRow: {
     flexDirection: "row",
     alignItems: "flex-start",

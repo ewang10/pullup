@@ -6,7 +6,7 @@
  */
 'use client';
 
-import { CLAIM_STATUS, formatCurrency, type ClaimStatus } from '@/lib/claims';
+import { CLAIM_STATUS, NOT_VERIFIED_STATUS, formatCurrency, type ClaimStatus } from '@/lib/claims';
 
 export interface ClaimRow {
   id: string;
@@ -17,6 +17,8 @@ export interface ClaimRow {
   completed_at: string | null;
   /** Venue's cost for this deal per completed visit */
   cost: number;
+  /** Closed without approved receipts: not charged */
+  unverified?: boolean;
 }
 
 interface ClaimsTableProps {
@@ -62,7 +64,7 @@ export default function ClaimsTable({ claims }: ClaimsTableProps) {
         </thead>
         <tbody>
           {claims.map((claim) => {
-            const status = CLAIM_STATUS[claim.status];
+            const status = claim.unverified ? NOT_VERIFIED_STATUS : CLAIM_STATUS[claim.status];
             return (
               <tr key={claim.id} className="border-b border-gray-100 hover:bg-gray-50">
                 <th scope="row" className="text-left py-3 px-4 font-medium text-gray-900">{claim.deal_title}</th>
@@ -81,7 +83,7 @@ export default function ClaimsTable({ claims }: ClaimsTableProps) {
                   {claim.completed_at ? formatDateTime(claim.completed_at) : <span aria-label="Not visited">—</span>}
                 </td>
                 <td className="py-3 px-4 text-right text-gray-900 whitespace-nowrap">
-                  {claim.status === 'completed' ? formatCurrency(claim.cost) : <span aria-label="No charge">—</span>}
+                  {claim.status === 'completed' && !claim.unverified ? formatCurrency(claim.cost) : <span aria-label="No charge">—</span>}
                 </td>
               </tr>
             );

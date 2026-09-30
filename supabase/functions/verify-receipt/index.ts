@@ -26,24 +26,31 @@ serve(async (req) => {
       });
     }
 
-    // Check if user is admin (for v1, manual receipt verification)
+    // Only platform admin or support may approve/reject receipts
     const { data: userData } = await supabase
       .from('users')
       .select('role')
       .eq('id', user.id)
       .single();
 
-    if (userData?.role !== 'venue_admin') {
-      return new Response(JSON.stringify({ error: 'Only admins can verify receipts' }), {
+    if (userData?.role !== 'platform_admin' && userData?.role !== 'platform_support') {
+      return new Response(JSON.stringify({ error: 'Only platform admins can verify receipts' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const { claim_id, approved } = await req.json();
+    const { claim_id, approved, receipt_type } = await req.json();
 
     if (!claim_id || typeof approved !== 'boolean') {
       return new Response(JSON.stringify({ error: 'claim_id and approved (boolean) are required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (receipt_type !== 'ride' && receipt_type !== 'venue') {
+      return new Response(JSON.stringify({ error: 'receipt_type must be "ride" or "venue"' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -54,7 +61,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    // Get the claim
+    // Fetch the claim with deal receipt requirement config
     const { data: claim, error: claimError } = await adminSupabase
       .from('deal_claims')
       .select('*, deal:deals(*)')
@@ -69,62 +76,106 @@ serve(async (req) => {
       });
     }
 
-    if (!claim.ride_receipt_url) {
-      return new Response(JSON.stringify({ error: 'No receipt uploaded for this claim' }), {
+    // Visits past their receipt deadline are closed and never settle.
+    if (claim.unverified_at) {
+      return new Response(JSON.stringify({ error: 'This visit was closed because receipts were not approved by the deadline' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Update verification status
-    const { error: updateError } = await adminSupabase
-      .from('deal_claims')
-      .update({
-        ride_receipt_verified: approved,
-        ride_credit_paid: approved, // In v1, mark as paid immediately on approval
-      })
-      .eq('id', claim_id);
-
-    if (updateError) {
-      return new Response(JSON.stringify({ error: 'Failed to update claim' }), {
-        status: 500,
+    // Ensure the receipt being reviewed actually has an upload
+    const receiptUrl = receipt_type === 'ride' ? claim.ride_receipt_url : claim.venue_receipt_url;
+    if (!receiptUrl) {
+      return new Response(JSON.stringify({ error: `No ${receipt_type} receipt uploaded for this claim` }), {
+        status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // If approved, update the ride reimbursement transaction status
     if (approved) {
+      // Update the appropriate receipt status to approved
+      const receiptUpdate = receipt_type === 'ride'
+        ? { ride_receipt_status: 'approved', ride_receipt_verified: true }
+        : { venue_receipt_status: 'approved' };
+
       await adminSupabase
-        .from('transactions')
-        .update({ status: 'completed' })
-        .eq('deal_claim_id', claim_id)
-        .eq('type', 'ride_reimbursement');
+        .from('deal_claims')
+        .update(receiptUpdate)
+        .eq('id', claim_id);
 
-      // If there's a referring driver, update driver earnings
-      if (claim.referring_driver_id) {
-        await adminSupabase
-          .from('deal_claims')
-          .update({ driver_kickback_paid: true })
-          .eq('id', claim_id);
+      // Re-fetch to get the latest status of both receipts before deciding to settle
+      const { data: refreshed } = await adminSupabase
+        .from('deal_claims')
+        .select('*, deal:deals(*)')
+        .eq('id', claim_id)
+        .single();
 
+      if (!refreshed) {
+        return new Response(JSON.stringify({ error: 'Failed to refresh claim state' }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Check if ALL required receipts are now approved
+      const deal = refreshed.deal;
+      const rideOk  = !deal.requires_ride_receipt  || refreshed.ride_receipt_status  === 'approved';
+      const venueOk = !deal.requires_venue_receipt || refreshed.venue_receipt_status === 'approved';
+      const shouldSettle = rideOk && venueOk;
+
+      // Settle only once — idempotency guard via ride_credit_paid flag
+      if (shouldSettle && !refreshed.ride_credit_paid) {
+        // Mark financial transactions as completed
         await adminSupabase
           .from('transactions')
           .update({ status: 'completed' })
           .eq('deal_claim_id', claim_id)
-          .eq('type', 'driver_kickback');
+          .in('type', ['venue_charge', 'ride_reimbursement', 'platform_fee']);
 
-        // Update driver earnings
-        await adminSupabase.rpc('increment_driver_earnings', {
-          p_driver_id: claim.referring_driver_id,
-          p_amount: claim.deal.driver_kickback_amount,
+        // Credit the rider
+        await adminSupabase.rpc('increment_rider_balance', {
+          p_user_id: refreshed.rider_user_id,
+          p_amount: deal.ride_credit_amount,
         });
+
+        // Update claim payment flags
+        await adminSupabase
+          .from('deal_claims')
+          .update({ ride_credit_paid: true, venue_charged: true })
+          .eq('id', claim_id);
+
+        // Settle driver kickback if applicable and not yet paid
+        if (refreshed.referring_driver_id) {
+          await adminSupabase
+            .from('transactions')
+            .update({ status: 'completed' })
+            .eq('deal_claim_id', claim_id)
+            .eq('type', 'driver_kickback');
+
+          await adminSupabase.rpc('increment_driver_earnings', {
+            p_driver_id: refreshed.referring_driver_id,
+            p_amount: deal.driver_kickback_amount,
+          });
+        }
       }
+    } else {
+      // Reject: update only the relevant receipt status
+      const rejectUpdate = receipt_type === 'ride'
+        ? { ride_receipt_status: 'rejected' }
+        : { venue_receipt_status: 'rejected' };
+
+      await adminSupabase
+        .from('deal_claims')
+        .update(rejectUpdate)
+        .eq('id', claim_id);
     }
 
     return new Response(JSON.stringify({
-      message: approved ? 'Receipt approved. Ride credit will be processed.' : 'Receipt rejected.',
+      message: approved ? 'Receipt approved.' : 'Receipt rejected.',
       claim_id,
       approved,
+      receipt_type,
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

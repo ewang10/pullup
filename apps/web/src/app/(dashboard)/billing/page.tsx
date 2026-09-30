@@ -25,7 +25,8 @@ interface Charge {
 const STATUS: Record<Charge['status'], { label: string; className: string }> = {
   completed: { label: 'Paid', className: 'bg-green-100 text-green-900' },
   pending: { label: 'Processing', className: 'bg-yellow-100 text-yellow-900' },
-  failed: { label: 'Failed', className: 'bg-red-100 text-red-900' },
+  // Payment failures and visits closed without approved receipts.
+  failed: { label: 'Not charged', className: 'bg-gray-100 text-gray-800' },
 };
 
 const pct = (n: number) => `${Math.round(n * 100)}%`;

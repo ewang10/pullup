@@ -13,7 +13,7 @@ import { createSupabaseBrowserClient } from '@/lib/supabase-client';
 import StatCard from '@/components/StatCard';
 import ClaimsTable, { type ClaimRow } from '@/components/ClaimsTable';
 import { CHART_COLORS, CHART_AXIS, chartTooltipStyle } from '@/lib/chart';
-import { costPerVisit, formatCurrency, percentChange, type ClaimStatus } from '@/lib/claims';
+import { costPerVisit, formatCurrency, isChargeableVisit, percentChange, type ClaimStatus } from '@/lib/claims';
 import {
   ComposedChart,
   Area,
@@ -46,6 +46,7 @@ interface ClaimWithDeal {
   status: ClaimStatus;
   reserved_at: string;
   completed_at: string | null;
+  unverified_at: string | null;
   deal: { title: string; ride_credit_amount: number; driver_kickback_amount: number; platform_fee_amount: number } | null;
 }
 
@@ -88,11 +89,14 @@ export default function DashboardPage() {
 
         const { data: venue } = await supabase
           .from('venues')
-          .select('id, avg_check_amount')
+          .select('id')
           .eq('owner_user_id', user.id)
           .single();
         if (!venue) return;
-        setAvgCheck(venue.avg_check_amount != null ? Number(venue.avg_check_amount) : null);
+        // Private to the owner, so read through an RPC rather than the venues table.
+        const { data: privateRows } = await supabase.rpc('get_my_venue_private');
+        const avg = (privateRows as { avg_check_amount: number | null }[] | null)?.[0]?.avg_check_amount;
+        setAvgCheck(avg != null ? Number(avg) : null);
 
         const { data: venueDeals } = await supabase
           .from('deals')
@@ -113,7 +117,7 @@ export default function DashboardPage() {
 
         const { data: claimRows } = await supabase
           .from('deal_claims')
-          .select('id, status, reserved_at, completed_at, deal:deals(title, ride_credit_amount, driver_kickback_amount, platform_fee_amount)')
+          .select('id, status, reserved_at, completed_at, unverified_at, deal:deals(title, ride_credit_amount, driver_kickback_amount, platform_fee_amount)')
           .in('deal_id', dealIds)
           .gte('reserved_at', prevStart.toISOString())
           .order('reserved_at', { ascending: false });
@@ -134,7 +138,7 @@ export default function DashboardPage() {
           const reserved = new Date(c.reserved_at);
           const inCurrent = reserved >= periodStart;
           if (reserved >= todayStart) next.todayClaims += 1;
-          if (c.status === 'completed') {
+          if (isChargeableVisit(c)) {
             const cost = costPerVisit(c.deal);
             if (inCurrent) {
               next.completedVisits += 1;
@@ -147,7 +151,7 @@ export default function DashboardPage() {
           const point = daily.get(c.reserved_at.split('T')[0]);
           if (point) {
             point.claims += 1;
-            if (c.status === 'completed') point.completed += 1;
+            if (isChargeableVisit(c)) point.completed += 1;
           }
         }
 
@@ -186,6 +190,7 @@ export default function DashboardPage() {
             reserved_at: c.reserved_at,
             completed_at: c.completed_at,
             cost: costPerVisit(c.deal),
+            unverified: Boolean(c.unverified_at),
           }))
         );
       } catch (err) {

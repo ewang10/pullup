@@ -18,9 +18,14 @@ serve(async (req) => {
       { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
     );
 
+    const authHeader = req.headers.get('Authorization');
+    console.log('complete-claim auth header present:', !!authHeader);
+    console.log('complete-claim auth header preview:', authHeader?.substring(0, 30));
+
     const { data: { user }, error: authError } = await supabase.auth.getUser();
+    console.log('complete-claim getUser result:', { user: !!user, authError: authError?.message });
     if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      return new Response(JSON.stringify({ error: 'Unauthorized', detail: authError?.message }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -65,9 +70,16 @@ serve(async (req) => {
       });
     }
 
+    // Use service role for all status mutations — the rider-level trigger
+    // blocks direct status changes from the anon/user client.
+    const adminSupabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
+
     // Check if claim has expired
     if (new Date(claim.expires_at) < new Date()) {
-      await supabase
+      await adminSupabase
         .from('deal_claims')
         .update({ status: 'expired' })
         .eq('id', claim.id);
@@ -80,7 +92,7 @@ serve(async (req) => {
 
     // Mark claim as completed
     const now = new Date().toISOString();
-    const { data: updatedClaim, error: updateError } = await supabase
+    const { data: updatedClaim, error: updateError } = await adminSupabase
       .from('deal_claims')
       .update({
         status: 'completed',
@@ -97,49 +109,80 @@ serve(async (req) => {
       });
     }
 
-    // Create pending transactions using service role for admin operations
-    const adminSupabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    );
-
     const deal = claim.deal;
+
+    // Determine whether any receipt is required.
+    // When no receipt is required, settle everything immediately.
+    // When any receipt is required, all transactions stay pending until
+    // verify-receipt confirms all required receipts are approved.
+    const requiresAnyReceipt = deal.requires_ride_receipt || deal.requires_venue_receipt;
+    const txStatus = requiresAnyReceipt ? 'pending' : 'completed';
+
     const transactions = [
       {
         deal_claim_id: claim.id,
         type: 'venue_charge',
         amount: deal.ride_credit_amount + deal.driver_kickback_amount + deal.platform_fee_amount,
-        status: 'pending',
+        status: txStatus,
       },
       {
         deal_claim_id: claim.id,
         type: 'ride_reimbursement',
         amount: deal.ride_credit_amount,
-        status: 'pending',
+        status: txStatus,
       },
       {
         deal_claim_id: claim.id,
         type: 'platform_fee',
         amount: deal.platform_fee_amount,
-        status: 'pending',
+        status: txStatus,
       },
     ];
 
-    // Add driver kickback transaction if there's a referring driver
+    // Add driver kickback transaction if there's a referring driver.
     if (claim.referring_driver_id) {
       transactions.push({
         deal_claim_id: claim.id,
         type: 'driver_kickback',
         amount: deal.driver_kickback_amount,
-        status: 'pending',
+        status: txStatus,
       });
     }
 
     await adminSupabase.from('transactions').insert(transactions);
 
+    // If no receipts required: settle immediately — increment balances and mark flags.
+    // This also fixes the pre-existing issue where driver earnings were never incremented
+    // unless the rider uploaded a receipt.
+    if (!requiresAnyReceipt) {
+      await adminSupabase.rpc('increment_rider_balance', {
+        p_user_id: claim.rider_user_id,
+        p_amount: deal.ride_credit_amount,
+      });
+
+      if (claim.referring_driver_id) {
+        await adminSupabase.rpc('increment_driver_earnings', {
+          p_driver_id: claim.referring_driver_id,
+          p_amount: deal.driver_kickback_amount,
+        });
+      }
+
+      await adminSupabase
+        .from('deal_claims')
+        .update({
+          ride_credit_paid: true,
+          venue_charged: true,
+        })
+        .eq('id', claim.id);
+    }
+
+    const message = requiresAnyReceipt
+      ? 'Deal completed! Upload your receipt(s) to receive your ride credit.'
+      : 'Deal completed! Your ride credit has been added to your wallet.';
+
     return new Response(JSON.stringify({
       claim: updatedClaim,
-      message: 'Deal completed! Upload your ride receipt to get your ride credit.',
+      message,
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -2,7 +2,7 @@
  * Login page for venue administrators.
  *
  * Handles email/password authentication via Supabase. After a successful
- * sign-in the user's `user_metadata.role` is verified to be `venue_admin`;
+ * sign-in the user's role (from public.users) decides where they go;
  * non-admin users are signed out and shown an error message. The page also
  * reads the `?error=unauthorized` query parameter (set by middleware) and
  * displays an appropriate notice on mount.
@@ -14,7 +14,7 @@ import { Suspense, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { createSupabaseBrowserClient } from '@/lib/supabase-client';
-import { homeForRole } from '@/lib/roles';
+import { fetchRole, homeForRole } from '@/lib/roles';
 
 // Public portfolio demo credentials. Set only on the demo deployment; each
 // account shows only when both its email and password are set.
@@ -32,6 +32,13 @@ const DEMO_ACCOUNTS = [
     description: 'Approve new drivers and review ride and venue receipts.',
     email: process.env.NEXT_PUBLIC_DEMO_STAFF_EMAIL,
     password: process.env.NEXT_PUBLIC_DEMO_STAFF_PASSWORD,
+  },
+  {
+    key: 'admin',
+    label: 'PullUp admin',
+    description: 'Everything staff can do, plus suspending drivers and extending receipt deadlines.',
+    email: process.env.NEXT_PUBLIC_DEMO_ADMIN_EMAIL,
+    password: process.env.NEXT_PUBLIC_DEMO_ADMIN_PASSWORD,
   },
 ].filter((a): a is typeof a & { email: string; password: string } => Boolean(a.email && a.password));
 
@@ -71,7 +78,7 @@ function LoginForm() {
       }
 
       // Venue admins go to the dashboard, staff to the review area.
-      const home = homeForRole(data.user?.user_metadata?.role);
+      const home = data.user ? homeForRole(await fetchRole(supabase, data.user.id)) : null;
       if (!home) {
         await supabase.auth.signOut();
         setError(UNAUTHORIZED_MESSAGE);

@@ -18,9 +18,11 @@ serve(async (req) => {
     const authHeader = req.headers.get('Authorization');
     const cronSecret = Deno.env.get('CRON_SECRET');
 
-    if (cronSecret) {
+    // Fail closed: without a configured secret nobody may call this. (Expiry
+    // also runs in the database via pg_cron.)
+    {
       const providedSecret = req.headers.get('x-cron-secret');
-      if (providedSecret !== cronSecret) {
+      if (!cronSecret || providedSecret !== cronSecret) {
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
           status: 401,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },

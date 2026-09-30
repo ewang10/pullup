@@ -17,6 +17,7 @@
  *   DEMO_RIDER_EMAIL   (default: pullup.demo.app+rider@gmail.com)
  *   DEMO_DRIVER_EMAIL  (default: pullup.demo.app+driver@gmail.com)
  *   DEMO_STAFF_EMAIL   (default: pullup.demo.app+staff@gmail.com)
+ *   DEMO_ADMIN_EMAIL   (default: pullup.demo.app+admin@gmail.com)
  */
 
 import { CLAIM_COST_MIN, calculateClaimCosts } from "../packages/shared/src/constants.ts";
@@ -28,6 +29,7 @@ const DEMO_RIDER_DOMAIN = 'demo.pullup.example.com';
 const DEMO_RIDER_EMAIL = process.env.DEMO_RIDER_EMAIL || 'pullup.demo.app+rider@gmail.com';
 const DEMO_DRIVER_EMAIL = process.env.DEMO_DRIVER_EMAIL || 'pullup.demo.app+driver@gmail.com';
 const DEMO_STAFF_EMAIL = process.env.DEMO_STAFF_EMAIL || 'pullup.demo.app+staff@gmail.com';
+const DEMO_ADMIN_EMAIL = process.env.DEMO_ADMIN_EMAIL || 'pullup.demo.app+admin@gmail.com';
 // Sample riders whose claims the demo driver is linked to (plus the demo rider).
 const REFERRED_SAMPLE_RIDERS = 5;
 // Driver bonuses newer than this stay unpaid, so the driver has a balance.
@@ -87,25 +89,23 @@ async function authAdmin(path, { method = 'GET', body } = {}) {
 }
 
 /**
- * Give the demo staff account the platform_support role, in both public.users
- * (used by database checks) and auth user_metadata (used by the web app).
+ * Give a demo account a platform role. public.users.role is what every
+ * permission check uses; user_metadata is kept in sync for display only.
  */
-async function ensureStaffAccount() {
-  const [staff] = await rest(`users?select=id,role&email=eq.${encodeURIComponent(DEMO_STAFF_EMAIL)}`);
-  if (!staff) {
-    console.log(`No demo staff account (${DEMO_STAFF_EMAIL}) yet; skipped.`);
-    return;
+async function ensurePlatformAccount(email, role, fullName) {
+  const [account] = await rest(`users?select=id&email=eq.${encodeURIComponent(email)}`);
+  if (!account) {
+    console.log(`No demo account ${email} yet; skipped.`);
+    return null;
   }
-  await rest(`users?id=eq.${staff.id}`, {
-    method: 'PATCH',
-    body: { role: 'platform_support', full_name: 'Demo Staff' },
-  });
-  const { user } = await authAdmin(`users/${staff.id}`).then((u) => ({ user: u }));
-  await authAdmin(`users/${staff.id}`, {
+  await rest(`users?id=eq.${account.id}`, { method: 'PATCH', body: { role, full_name: fullName } });
+  const user = await authAdmin(`users/${account.id}`);
+  await authAdmin(`users/${account.id}`, {
     method: 'PUT',
-    body: { user_metadata: { ...(user.user_metadata || {}), role: 'platform_support', full_name: 'Demo Staff' } },
+    body: { user_metadata: { ...(user.user_metadata || {}), role, full_name: fullName } },
   });
-  console.log('Demo staff: platform_support');
+  console.log(`${fullName}: ${role}`);
+  return { id: account.id, name: fullName, role };
 }
 
 // Driver applications for the staff review page (sample users without logins).
@@ -117,6 +117,10 @@ const APPLICANTS = [
   {
     name: 'Jamal Wright', phone: '+19165550144', platform: 'uber', driverId: 'UBR-0000-0000', status: 'rejected', daysAgo: 6,
     note: "We couldn't verify your rideshare driver ID. Please send a screenshot of your driver profile.",
+  },
+  {
+    name: 'Derek Olsen', phone: '+19165550145', platform: 'lyft', driverId: 'LYFT-51930', status: 'suspended', daysAgo: 40,
+    note: 'Your driver code was used on rides you did not give.', holdPayouts: true, balance: 18.4,
   },
 ];
 
@@ -182,7 +186,10 @@ async function uploadSample(path, svg) {
 }
 
 async function main() {
-  await ensureStaffAccount();
+  const staffActor = await ensurePlatformAccount(DEMO_STAFF_EMAIL, 'platform_support', 'Demo Staff');
+  const adminActor = await ensurePlatformAccount(DEMO_ADMIN_EMAIL, 'platform_admin', 'Demo Admin');
+  const reviewer = staffActor ?? { id: null, name: 'Demo Staff', role: 'platform_support' };
+  const admin = adminActor ?? { id: null, name: 'Demo Admin', role: 'platform_admin' };
 
   const [owner] = await rest(`users?select=id&email=eq.${encodeURIComponent(DEMO_EMAIL)}`);
   if (!owner) throw new Error(`No user with email ${DEMO_EMAIL}. Sign up on the web dashboard first.`);
@@ -249,11 +256,33 @@ async function main() {
         is_verified: false,
         verification_status: a.status,
         verification_note: a.note ?? null,
-        reviewed_at: a.status === 'rejected' ? new Date(t0 - (a.daysAgo - 1) * 86_400_000).toISOString() : null,
+        payouts_on_hold: Boolean(a.holdPayouts),
+        payout_balance: a.balance ?? 0,
+        reviewed_at: a.status === 'pending' ? null : new Date(t0 - 2 * 86_400_000).toISOString(),
         created_at: new Date(t0 - a.daysAgo * 86_400_000).toISOString(),
       };
     }),
   });
+
+  // Decision history for the sample drivers (deleted with them).
+  const profiles = await rest(`driver_profiles?select=id,user_id&user_id=in.(${applicantUsers.map((u) => u.id).join(',')})`);
+  const profileByUser = new Map(profiles.map((p) => [p.user_id, p.id]));
+  const at = (days) => new Date(t0 - days * 86_400_000).toISOString();
+  const events = [];
+  APPLICANTS.forEach((a, i) => {
+    const driver_profile_id = profileByUser.get(applicantUsers[i].id);
+    // Bulk inserts need identical keys on every row.
+    const by = (actor) => ({
+      driver_profile_id, actor_user_id: actor.id, actor_name: actor.name, actor_role: actor.role,
+      note: null, payouts_on_hold: false,
+    });
+    if (a.status === 'rejected') events.push({ ...by(reviewer), action: 'rejected', note: a.note, created_at: at(2) });
+    if (a.status === 'suspended') {
+      events.push({ ...by(reviewer), action: 'approved', note: null, created_at: at(a.daysAgo - 1) });
+      events.push({ ...by(admin), action: 'suspended', note: a.note, payouts_on_hold: true, created_at: at(2) });
+    }
+  });
+  if (events.length) await rest('driver_review_events', { method: 'POST', body: events });
 
   const deals = await rest('deals', {
     method: 'POST',
@@ -290,7 +319,16 @@ async function main() {
     // Present the demo driver as verified so the earnings screens are unlocked.
     await rest(`driver_profiles?id=eq.${driverProfile.id}`, {
       method: 'PATCH',
-      body: { is_verified: true, verification_status: 'approved' },
+      body: { is_verified: true, verification_status: 'approved', verification_note: null, payouts_on_hold: false,
+              reviewed_at: new Date(now.getTime() - 29 * DAY).toISOString() },
+    });
+    await rest(`driver_review_events?driver_profile_id=eq.${driverProfile.id}`, { method: 'DELETE' });
+    await rest('driver_review_events', {
+      method: 'POST',
+      body: [{
+        driver_profile_id: driverProfile.id, actor_user_id: reviewer.id, actor_name: reviewer.name,
+        actor_role: reviewer.role, action: 'approved', created_at: new Date(now.getTime() - 29 * DAY).toISOString(),
+      }],
     });
   }
 
@@ -471,6 +509,50 @@ async function main() {
       },
     });
   }
+
+  // Older visits whose receipts never came in: closed as not verified (no charge).
+  const DEADLINE_MS = 7 * 86_400_000;
+  const closedCandidates = approved
+    .filter((c) => now.getTime() - new Date(c.completed_at).getTime() > DEADLINE_MS + 86_400_000)
+    .filter((c) => !appRider || c.rider_user_id !== appRider.id)
+    .slice(0, 3);
+  for (const c of closedCandidates) {
+    await rest(`deal_claims?id=eq.${c.id}`, {
+      method: 'PATCH',
+      body: {
+        ...HELD_FLAGS,
+        ride_receipt_url: null, ride_receipt_status: null, venue_receipt_url: null, venue_receipt_status: null,
+        venue_bill_amount: null,
+        unverified_at: new Date(new Date(c.completed_at).getTime() + DEADLINE_MS).toISOString(),
+      },
+    });
+    heldIds.add(c.id);
+  }
+  if (closedCandidates.length) {
+    await rest(`transactions?deal_claim_id=in.(${ids(closedCandidates)})`, { method: 'PATCH', body: { status: 'failed' } });
+  }
+
+  // One visit still waiting on its rider, due in under a day.
+  const nearlyDue = approved.find(
+    (c) =>
+      !closedCandidates.includes(c) &&
+      (!appRider || c.rider_user_id !== appRider.id) &&
+      now.getTime() - new Date(c.completed_at).getTime() < DEADLINE_MS
+  );
+  if (nearlyDue) {
+    await rest(`deal_claims?id=eq.${nearlyDue.id}`, {
+      method: 'PATCH',
+      body: {
+        ...HELD_FLAGS,
+        ride_receipt_url: null, ride_receipt_status: null, venue_receipt_url: null, venue_receipt_status: null,
+        venue_bill_amount: null,
+        receipt_due_at: new Date(now.getTime() + 18 * 3_600_000).toISOString(),
+      },
+    });
+    held.push(nearlyDue);
+    heldIds.add(nearlyDue.id);
+  }
+  console.log(`Deadlines: ${closedCandidates.length} visits closed as not verified${nearlyDue ? ', 1 due within a day' : ''}`);
 
   // Money for held visits isn't settled until receipts are approved.
   if (held.length) {

@@ -6,17 +6,21 @@
  * (venue charge, rider credit, driver bonus) is held until every required
  * receipt is approved. Approve/reject goes through the verify-receipt edge
  * function, which settles the claim once everything required is approved.
+ * Receipts are due 7 days after the visit; after that the visit closes as not
+ * verified. Admins can extend a deadline.
  */
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase-client';
 import { formatCurrency } from '@/lib/claims';
+import { fetchRole, isAdminRole } from '@/lib/roles';
 import { RECEIPTS_BUCKET, receiptPathFromStored, type ReceiptType } from '@pullup/shared';
 
 interface QueueItem {
   claim_id: string;
   completed_at: string;
+  receipt_due_at: string;
   deal_title: string;
   venue_name: string;
   rider_display_name: string;
@@ -30,7 +34,32 @@ interface QueueItem {
   has_driver: boolean;
 }
 
+interface AwaitingItem {
+  claim_id: string;
+  completed_at: string;
+  receipt_due_at: string;
+  deal_title: string;
+  venue_name: string;
+  rider_display_name: string;
+  requires_ride_receipt: boolean;
+  requires_venue_receipt: boolean;
+  ride_receipt_status: string | null;
+  venue_receipt_status: string | null;
+}
+
 const TYPE_LABEL: Record<ReceiptType, string> = { ride: 'Ride receipt', venue: 'Venue receipt' };
+
+function DueDate({ iso }: { iso: string }) {
+  const due = new Date(iso);
+  const hoursLeft = (due.getTime() - Date.now()) / 3_600_000;
+  const label = due.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return (
+    <span className={hoursLeft < 24 ? 'font-medium text-red-800' : 'text-gray-700'}>
+      {hoursLeft < 0 ? `Overdue since ${label}` : `Due ${label}`}
+      {hoursLeft >= 0 && hoursLeft < 24 ? ' (less than a day left)' : ''}
+    </span>
+  );
+}
 
 const STATUS_TEXT: Record<string, { label: string; className: string }> = {
   pending_review: { label: 'Waiting for review', className: 'bg-yellow-100 text-yellow-900' },
@@ -53,6 +82,8 @@ export default function StaffReceiptsPage() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [busyKey, setBusyKey] = useState<string | null>(null);
+  const [awaiting, setAwaiting] = useState<AwaitingItem[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
   // Bill totals typed by staff for venue receipts, keyed by claim.
   const [billTotals, setBillTotals] = useState<Record<string, string>>({});
 
@@ -67,6 +98,9 @@ export default function StaffReceiptsPage() {
     }
     const queue = (data || []) as QueueItem[];
     setItems(queue);
+
+    const { data: waiting } = await supabase.rpc('get_receipts_awaiting_upload');
+    setAwaiting((waiting || []) as AwaitingItem[]);
 
     // Receipts are private: fetch short-lived signed links for the photos.
     const paths = queue
@@ -87,6 +121,27 @@ export default function StaffReceiptsPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (user) setIsAdmin(isAdminRole(await fetchRole(supabase, user.id)));
+    });
+  }, [supabase]);
+
+  const extend = async (claimId: string, rider: string) => {
+    setBusyKey(`${claimId}:extend`);
+    setError(null);
+    const { data, error: err } = await supabase.rpc('extend_receipt_deadline', { p_claim_id: claimId, p_days: 7 });
+    setBusyKey(null);
+    if (err) {
+      setError(err.message);
+      return;
+    }
+    setNotice(
+      `Gave ${rider} until ${new Date(data as string).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}.`
+    );
+    load();
+  };
 
   const review = async (item: QueueItem, type: ReceiptType, approved: boolean) => {
     const key = `${item.claim_id}:${type}`;
@@ -179,10 +234,15 @@ export default function StaffReceiptsPage() {
                       })}
                     </p>
                   </div>
-                  <p className="text-sm text-gray-700">
-                    On approval: {formatCurrency(Number(item.ride_credit_amount))} ride credit
-                    {item.has_driver ? ' + driver bonus' : ''}
-                  </p>
+                  <div className="text-sm text-right">
+                    <p className="text-gray-700">
+                      On approval: {formatCurrency(Number(item.ride_credit_amount))} ride credit
+                      {item.has_driver ? ' + driver bonus' : ''}
+                    </p>
+                    <p>
+                      <DueDate iso={item.receipt_due_at} />
+                    </p>
+                  </div>
                 </div>
 
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">
@@ -266,6 +326,70 @@ export default function StaffReceiptsPage() {
           })}
         </ul>
       )}
+
+      <section className="mt-10" aria-labelledby="awaiting-heading">
+        <h2 id="awaiting-heading" className="text-xl font-semibold text-gray-900">Waiting on riders</h2>
+        <p className="text-gray-600 mt-1 mb-4 max-w-3xl">
+          Visits where the rider still has to upload (or re-upload) a required receipt. If the deadline passes, the
+          visit closes as not verified: the venue isn&apos;t charged and nobody is paid.
+          {isAdmin ? ' You can give a rider 7 more days if they ask.' : ' Admins can extend a deadline if a rider asks.'}
+        </p>
+        {awaiting.length === 0 ? (
+          <p className="card text-center text-gray-600">No visits waiting on riders.</p>
+        ) : (
+          <div className="card overflow-x-auto">
+            <table className="w-full text-sm">
+              <caption className="sr-only">Visits waiting for the rider to upload receipts</caption>
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th scope="col" className="text-left py-2 px-3 font-medium text-gray-600">Visit</th>
+                  <th scope="col" className="text-left py-2 px-3 font-medium text-gray-600">Still needed</th>
+                  <th scope="col" className="text-left py-2 px-3 font-medium text-gray-600">Deadline</th>
+                  {isAdmin && <th scope="col" className="py-2 px-3"><span className="sr-only">Actions</span></th>}
+                </tr>
+              </thead>
+              <tbody>
+                {awaiting.map((a) => {
+                  const needed = [
+                    a.requires_ride_receipt && a.ride_receipt_status !== 'approved' && a.ride_receipt_status !== 'pending_review'
+                      ? `Ride receipt${a.ride_receipt_status === 'rejected' ? ' (rejected)' : ''}`
+                      : null,
+                    a.requires_venue_receipt && a.venue_receipt_status !== 'approved' && a.venue_receipt_status !== 'pending_review'
+                      ? `Venue receipt${a.venue_receipt_status === 'rejected' ? ' (rejected)' : ''}`
+                      : null,
+                  ].filter(Boolean);
+                  return (
+                    <tr key={a.claim_id} className="border-b border-gray-100">
+                      <th scope="row" className="text-left py-2 px-3 font-normal">
+                        <span className="font-medium text-gray-900">{a.deal_title}</span>
+                        <span className="block text-gray-700">
+                          {a.venue_name} · {a.rider_display_name}
+                        </span>
+                      </th>
+                      <td className="py-2 px-3 text-gray-800">{needed.join(', ')}</td>
+                      <td className="py-2 px-3">
+                        <DueDate iso={a.receipt_due_at} />
+                      </td>
+                      {isAdmin && (
+                        <td className="py-2 px-3 text-right">
+                          <button
+                            type="button"
+                            disabled={busyKey === `${a.claim_id}:extend`}
+                            onClick={() => extend(a.claim_id, a.rider_display_name)}
+                            className="btn-secondary whitespace-nowrap"
+                          >
+                            Extend 7 days
+                          </button>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
     </div>
   );
 }

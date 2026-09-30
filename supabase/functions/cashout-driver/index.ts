@@ -47,13 +47,21 @@ serve(async (req) => {
     // Get driver profile
     const { data: profile, error: profileError } = await adminSupabase
       .from('driver_profiles')
-      .select('id, stripe_account_id, stripe_onboarding_complete')
+      .select('id, stripe_account_id, stripe_onboarding_complete, payouts_on_hold')
       .eq('user_id', user.id)
       .single();
 
     if (profileError || !profile) {
       return new Response(JSON.stringify({ error: 'Driver profile not found' }), {
         status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Admins can hold payouts when suspending a driver for suspected fraud.
+    if (profile.payouts_on_hold) {
+      return new Response(JSON.stringify({ error: 'Your payouts are on hold while your account is reviewed. Contact support.' }), {
+        status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }

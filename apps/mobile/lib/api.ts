@@ -233,19 +233,13 @@ export async function fetchDealDetail(
  * checks, creates the `deal_claims` row, and returns the new claim.
  *
  * @param dealId - UUID of the deal to claim.
- * @param referringDriverId - Optional UUID of the driver who referred the rider.
  * @returns The newly created `DealClaim`, or an error.
  */
-export async function claimDeal(
-  dealId: string,
-  referringDriverId?: string
-): Promise<ApiResult<DealClaim>> {
+export async function claimDeal(dealId: string): Promise<ApiResult<DealClaim>> {
   try {
     const { data, error } = await supabase.functions.invoke("claim-deal", {
-      body: {
-        deal_id: dealId,
-        referring_driver_id: referringDriverId || null,
-      },
+      // Drivers are added afterwards with linkDriver (approved drivers only).
+      body: { deal_id: dealId },
     });
 
     if (error) {

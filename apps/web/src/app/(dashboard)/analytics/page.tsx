@@ -87,7 +87,7 @@ export default function AnalyticsPage() {
         // Fetch claims in range, joining deal for amounts
         const { data: claimsData } = await supabase
           .from('deal_claims')
-          .select('reserved_at, status, deal_id, deal:deals(ride_credit_amount, driver_kickback_amount, platform_fee_amount)')
+          .select('reserved_at, status, unverified_at, deal_id, deal:deals(ride_credit_amount, driver_kickback_amount, platform_fee_amount)')
           .in('deal_id', dealIds)
           .gte('reserved_at', startDate.toISOString())
           .order('reserved_at', { ascending: true });
@@ -97,7 +97,8 @@ export default function AnalyticsPage() {
           const existing = dailyMap.get(day) || { visits: 0, completed: 0, revenue: 0 };
           existing.visits += 1;
 
-          if (claim.status === 'completed') {
+          // Visits closed without approved receipts aren't charged.
+          if (claim.status === 'completed' && !claim.unverified_at) {
             existing.completed += 1;
             const deal = claim.deal as unknown as Record<string, number> | null;
             const rev = deal

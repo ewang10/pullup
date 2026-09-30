@@ -11,7 +11,7 @@
 
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
-import { homeForRole, isStaffRole } from '@/lib/roles';
+import { fetchRole, homeForRole, isStaffRole } from '@/lib/roles';
 
 /** Route prefixes that require authentication and the venue_admin role. */
 const PROTECTED_PREFIXES = [
@@ -66,6 +66,8 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
+  // Role from public.users, not user_metadata (which users can edit).
+  const role = user ? await fetchRole(supabase, user.id) : null;
 
   // --- Staff area: platform admins and support only ---
   if (pathname === '/staff' || pathname.startsWith('/staff/')) {
@@ -74,7 +76,7 @@ export async function middleware(request: NextRequest) {
       url.pathname = '/login';
       return NextResponse.redirect(url);
     }
-    if (!isStaffRole(user.user_metadata?.role)) {
+    if (!isStaffRole(role)) {
       const url = request.nextUrl.clone();
       url.pathname = '/login';
       url.searchParams.set('error', 'unauthorized');
@@ -92,7 +94,6 @@ export async function middleware(request: NextRequest) {
     }
 
     // Signed in but not a venue admin — redirect with error flag
-    const role = user.user_metadata?.role;
     if (role !== 'venue_admin') {
       const url = request.nextUrl.clone();
       url.pathname = '/login';
@@ -102,7 +103,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // --- Auth page redirect for already-authenticated venue admins / staff ---
-  const home = user ? homeForRole(user.user_metadata?.role) : null;
+  const home = user ? homeForRole(role) : null;
   if (home && (pathname === '/login' || pathname === '/signup')) {
     const url = request.nextUrl.clone();
     url.pathname = home;

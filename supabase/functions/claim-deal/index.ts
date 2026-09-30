@@ -18,6 +18,12 @@ serve(async (req) => {
       { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
     );
 
+    // Service role client for queries that must see all riders' claims (e.g., daily cap check)
+    const adminSupabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
+
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -26,7 +32,9 @@ serve(async (req) => {
       });
     }
 
-    const { deal_id, referring_driver_id } = await req.json();
+    // Drivers are linked later through link-driver, which checks approval;
+    // any referring_driver_id sent by the client is ignored.
+    const { deal_id } = await req.json();
 
     if (!deal_id) {
       return new Response(JSON.stringify({ error: 'deal_id is required' }), {
@@ -50,30 +58,55 @@ serve(async (req) => {
       });
     }
 
-    // Check daily cap
-    const today = new Date().toISOString().split('T')[0];
-    const { count: todayClaims } = await supabase
+    // Expire any stale reserved claims for this rider on this deal
+    const now = new Date();
+    await supabase
+      .from('deal_claims')
+      .update({ status: 'expired' })
+      .eq('deal_id', deal_id)
+      .eq('rider_user_id', user.id)
+      .eq('status', 'reserved')
+      .lt('expires_at', now.toISOString());
+
+    // Check daily cap: count active reserved claims + all completed claims today
+    const today = now.toISOString().split('T')[0];
+
+    // Count reserved claims that haven't expired yet (use service role to see ALL riders)
+    const { count: activeReserved } = await adminSupabase
       .from('deal_claims')
       .select('*', { count: 'exact', head: true })
       .eq('deal_id', deal_id)
-      .in('status', ['reserved', 'completed'])
+      .eq('status', 'reserved')
+      .gte('reserved_at', `${today}T00:00:00Z`)
+      .lt('reserved_at', `${today}T23:59:59Z`)
+      .gt('expires_at', now.toISOString());
+
+    // Count completed claims (these always count toward the cap)
+    const { count: completedClaims } = await adminSupabase
+      .from('deal_claims')
+      .select('*', { count: 'exact', head: true })
+      .eq('deal_id', deal_id)
+      .eq('status', 'completed')
       .gte('reserved_at', `${today}T00:00:00Z`)
       .lt('reserved_at', `${today}T23:59:59Z`);
 
-    if ((todayClaims ?? 0) >= deal.daily_cap) {
-      return new Response(JSON.stringify({ error: 'Daily cap reached for this deal' }), {
+    const totalActiveClaims = (activeReserved ?? 0) + (completedClaims ?? 0);
+
+    if (totalActiveClaims >= deal.daily_cap) {
+      return new Response(JSON.stringify({ error: 'No more spots available for this deal today. Try again tomorrow!' }), {
         status: 409,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Check if rider already has an active claim for this deal
+    // Check if rider already has an active (non-expired) claim for this deal
     const { data: existingClaim } = await supabase
       .from('deal_claims')
       .select('id')
       .eq('deal_id', deal_id)
       .eq('rider_user_id', user.id)
       .eq('status', 'reserved')
+      .gt('expires_at', now.toISOString())
       .single();
 
     if (existingClaim) {
@@ -84,15 +117,14 @@ serve(async (req) => {
     }
 
     // Create the claim
-    const now = new Date();
     const expiresAt = new Date(now.getTime() + deal.hold_duration_minutes * 60 * 1000);
 
-    const { data: claim, error: claimError } = await supabase
+    // Riders cannot insert claims directly (RLS); create it here after the checks above.
+    const { data: claim, error: claimError } = await adminSupabase
       .from('deal_claims')
       .insert({
         deal_id,
         rider_user_id: user.id,
-        referring_driver_id: referring_driver_id || null,
         status: 'reserved',
         reserved_at: now.toISOString(),
         expires_at: expiresAt.toISOString(),

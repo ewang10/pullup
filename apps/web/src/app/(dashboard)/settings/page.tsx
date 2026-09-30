@@ -44,9 +44,12 @@ export default function SettingsPage() {
 
       const { data: venue } = await supabase
         .from('venues')
-        .select('*')
+        .select('id, name, address, city, state, category')
         .eq('owner_user_id', user.id)
         .single();
+      // Private venue fields (e.g. the average bill) are only readable by the owner via RPC.
+      const { data: privateRows } = await supabase.rpc('get_my_venue_private');
+      const privateInfo = (privateRows as { avg_check_amount: number | null }[] | null)?.[0];
 
       if (venue) {
         setProfile({
@@ -56,7 +59,7 @@ export default function SettingsPage() {
           city: venue.city || '',
           state: venue.state || '',
           category: venue.category || '',
-          avg_check_amount: venue.avg_check_amount != null ? String(venue.avg_check_amount) : '',
+          avg_check_amount: privateInfo?.avg_check_amount != null ? String(privateInfo.avg_check_amount) : '',
         });
       }
       setLoading(false);

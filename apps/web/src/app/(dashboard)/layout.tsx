@@ -9,6 +9,7 @@
 import { redirect } from 'next/navigation';
 import Sidebar from '@/components/Sidebar';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
+import { fetchRole } from '@/lib/roles';
 
 export default async function DashboardLayout({
   children,
@@ -20,7 +21,7 @@ export default async function DashboardLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user || user.user_metadata?.role !== 'venue_admin') {
+  if (!user || (await fetchRole(supabase, user.id)) !== 'venue_admin') {
     redirect('/login');
   }
 

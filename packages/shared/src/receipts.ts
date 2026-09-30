@@ -20,3 +20,10 @@ export function receiptPathFromStored(stored: string | null | undefined): string
   if (match) return decodeURIComponent(match[1]);
   return stored.startsWith('http') ? null : stored;
 }
+
+/** Days after check-in that a rider has to upload required receipts. */
+export const RECEIPT_DEADLINE_DAYS = 7;
+
+export function receiptDeadline(completedAt: string, dueAt?: string | null): Date {
+  return dueAt ? new Date(dueAt) : new Date(new Date(completedAt).getTime() + RECEIPT_DEADLINE_DAYS * 86_400_000);
+}

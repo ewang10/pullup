@@ -3,6 +3,8 @@
  *
  * - pending: explains the review and what staff are checking
  * - rejected: shows the reason staff gave and how to get help
+ * - suspended: an admin paused an approved account; shows the reason and
+ *   whether already-earned bonuses will still be paid
  */
 import { useState } from "react";
 import { View, Text, StyleSheet, Pressable, ScrollView, Linking, ActivityIndicator } from "react-native";
@@ -15,7 +17,10 @@ const SUPPORT_EMAIL = process.env.EXPO_PUBLIC_SUPPORT_EMAIL;
 export default function DriverReviewStatus({ driverProfile }: { driverProfile: DriverProfile }) {
   const { refreshProfile, signOut, profile } = useAuth();
   const [checking, setChecking] = useState(false);
-  const rejected = driverProfile.verification_status === "rejected";
+  const suspended = driverProfile.verification_status === "suspended";
+  // Rejected and suspended drivers both see the reason and a support link.
+  const rejected = driverProfile.verification_status === "rejected" || suspended;
+  const unpaid = Number(driverProfile.payout_balance ?? 0);
   const platform =
     RIDESHARE_PLATFORMS.find((p) => p.value === driverProfile.rideshare_platform)?.label ?? "Not provided";
 
@@ -37,18 +42,24 @@ export default function DriverReviewStatus({ driverProfile }: { driverProfile: D
       <ScrollView contentContainerStyle={styles.content}>
         <View style={[styles.badge, rejected ? styles.badgeRejected : styles.badgePending]}>
           <Text style={[styles.badgeText, rejected ? styles.badgeTextRejected : styles.badgeTextPending]}>
-            {rejected ? "Not approved" : "Under review"}
+            {suspended ? "On hold" : rejected ? "Not approved" : "Under review"}
           </Text>
         </View>
 
         <Text style={styles.title} accessibilityRole="header">
-          {rejected ? "Your driver application wasn't approved" : "We're reviewing your driver account"}
+          {suspended
+            ? "Your driver account is on hold"
+            : rejected
+            ? "Your driver application wasn't approved"
+            : "We're reviewing your driver account"}
         </Text>
 
         {rejected ? (
           <>
             <Text style={styles.text}>
-              Our team couldn&apos;t approve your account, so you can&apos;t earn driver bonuses yet.
+              {suspended
+                ? "Riders can't add your driver code to new claims while your account is on hold."
+                : "Our team couldn't approve your account, so you can't earn driver bonuses yet."}
             </Text>
             <View style={styles.reasonBox}>
               <Text style={styles.reasonLabel}>Reason</Text>
@@ -56,9 +67,22 @@ export default function DriverReviewStatus({ driverProfile }: { driverProfile: D
                 {driverProfile.verification_note ?? "No reason was given. Contact support for details."}
               </Text>
             </View>
+            {suspended && unpaid > 0 && (
+              <View style={[styles.reasonBox, driverProfile.payouts_on_hold ? null : styles.moneyBoxOk]}>
+                <Text style={[styles.reasonLabel, driverProfile.payouts_on_hold ? null : styles.moneyLabelOk]}>
+                  Your earned bonuses: ${unpaid.toFixed(2)}
+                </Text>
+                <Text style={styles.reasonText}>
+                  {driverProfile.payouts_on_hold
+                    ? "These are on hold while we review your account. Contact support if you have questions."
+                    : "You earned these before the hold, so you'll still be paid."}
+                </Text>
+              </View>
+            )}
             <Text style={styles.text}>
-              If something was entered wrong, contact support with the correct details and we&apos;ll take another
-              look.
+              {suspended
+                ? "If you think this is a mistake, contact support and we'll take another look."
+                : "If something was entered wrong, contact support with the correct details and we'll take another look."}
             </Text>
           </>
         ) : (
@@ -130,6 +154,8 @@ const styles = StyleSheet.create({
   reasonBox: { backgroundColor: "#FFFFFF", borderRadius: 12, borderWidth: 1, borderColor: "#FECACA", padding: 16, gap: 4 },
   reasonLabel: { fontSize: 13, fontWeight: "700", color: "#991B1B" },
   reasonText: { fontSize: 16, color: "#1A1A2E", lineHeight: 22 },
+  moneyBoxOk: { borderColor: "#BBF7D0" },
+  moneyLabelOk: { color: "#166534" },
   detailsCard: { backgroundColor: "#FFFFFF", borderRadius: 12, padding: 16, gap: 8 },
   detailsTitle: { fontSize: 15, fontWeight: "700", color: "#1A1A2E" },
   detailRow: { flexDirection: "row", justifyContent: "space-between", gap: 12 },
