@@ -11,12 +11,19 @@ export const SPLIT_RIDE_CREDIT = 0.5;
 export const SPLIT_DRIVER_KICKBACK = 0.2;
 export const SPLIT_PLATFORM_FEE = 0.3;
 
-/** Calculate the per-claim cost breakdown from a venue's total budget. */
+/**
+ * Calculate the per-claim cost breakdown from a venue's total budget.
+ * Works in cents and gives the platform fee the rounding remainder, so the
+ * three amounts always add up to exactly what the venue is charged.
+ */
 export function calculateClaimCosts(costPerClaim: number) {
+  const total = Math.round(costPerClaim * 100);
+  const ride = Math.round(total * SPLIT_RIDE_CREDIT);
+  const driver = Math.round(total * SPLIT_DRIVER_KICKBACK);
   return {
-    ride_credit_amount: Math.round(costPerClaim * SPLIT_RIDE_CREDIT * 100) / 100,
-    driver_kickback_amount: Math.round(costPerClaim * SPLIT_DRIVER_KICKBACK * 100) / 100,
-    platform_fee_amount: Math.round(costPerClaim * SPLIT_PLATFORM_FEE * 100) / 100,
+    ride_credit_amount: ride / 100,
+    driver_kickback_amount: driver / 100,
+    platform_fee_amount: (total - ride - driver) / 100,
   };
 }
 

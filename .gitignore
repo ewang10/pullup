@@ -24,3 +24,7 @@ supabase/.branches/
 .vercel
 .env*
 !.env.example
+
+# Playwright
+e2e/test-results/
+e2e/playwright-report/

@@ -7,6 +7,11 @@ schemas = ["public"]
 [db]
 port = 54322
 
+# seed.sql is sample data for a hosted project's SQL editor (it expects an
+# existing venue); local databases and CI start empty.
+[db.seed]
+enabled = false
+
 [studio]
 port = 54323
 

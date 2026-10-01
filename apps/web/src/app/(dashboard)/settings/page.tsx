@@ -8,6 +8,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { createSupabaseBrowserClient } from '@/lib/supabase-client';
 import { US_STATES, VENUE_CATEGORIES } from '@pullup/shared';
 import VenuePhotoCard from '@/components/VenuePhotoCard';
@@ -278,13 +279,14 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between p-4 bg-red-50 rounded-lg">
             <div>
               <p className="font-medium text-red-900">Delete account</p>
-              <p className="text-sm text-red-600">
+              <p className="text-sm text-red-700">
                 Permanently remove your venue and all associated data
               </p>
             </div>
-            <button className="btn-danger text-sm">
-              Delete account
-            </button>
+            {/* Deletion is handled by support so billing can be settled first. */}
+            <Link href="/support" className="btn-danger text-sm">
+              Request deletion
+            </Link>
           </div>
         </div>
       </div>

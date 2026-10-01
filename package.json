@@ -4,14 +4,17 @@
   "packageManager": "npm@11.19.0",
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "packages/*",
+    "e2e"
   ],
   "scripts": {
     "dev:mobile": "cd apps/mobile && npx expo start",
     "dev:web": "cd apps/web && npm run dev",
     "build:web": "cd apps/web && npm run build",
     "lint": "turbo run lint",
-    "typecheck": "turbo run typecheck"
+    "typecheck": "turbo run typecheck",
+    "test": "npm run test -w @pullup/shared",
+    "test:e2e": "npm run test -w @pullup/e2e"
   },
   "devDependencies": {
     "expo-router": "~57.0.23",
