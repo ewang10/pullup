@@ -6,6 +6,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase-client';
+import StatusMessage from '@/components/StatusMessage';
 
 interface VenueRow {
   id: string;
@@ -65,14 +66,7 @@ export default function StaffVenuesPage() {
         venue can upload a new one.
       </p>
 
-      <div aria-live="polite">
-        {notice && <p className="mb-4 p-3 rounded-lg bg-green-50 border border-green-200 text-green-900 text-sm">{notice}</p>}
-      </div>
-      {error && (
-        <p role="alert" className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-800 text-sm">
-          {error}
-        </p>
-      )}
+      <StatusMessage notice={notice} error={error} />
 
       {loading ? (
         <div className="flex justify-center py-16" role="status">
@@ -104,7 +98,8 @@ export default function StaffVenuesPage() {
                     >
                       {busyId === v.id ? 'Removing…' : 'Yes, remove photo'}
                     </button>
-                    <button type="button" onClick={() => setConfirmId(null)} className="btn-secondary">
+                    {/* Focus the safe choice so Enter doesn't remove by accident. */}
+                    <button type="button" onClick={() => setConfirmId(null)} className="btn-secondary" autoFocus>
                       Cancel
                     </button>
                   </div>

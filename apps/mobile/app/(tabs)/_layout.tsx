@@ -64,6 +64,9 @@ export default function TabsLayout() {
         tabBarActiveTintColor: "#5B53EE",
         tabBarInactiveTintColor: "#6B7280",
         tabBarLabelStyle: styles.tabBarLabel,
+        // Fixed-height bar: keep labels at a fixed size like native iOS tab bars
+        // (iOS users can long-press a tab to see its label enlarged).
+        tabBarAllowFontScaling: false,
       }}
     >
       <Tabs.Screen

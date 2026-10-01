@@ -215,6 +215,8 @@ async function main() {
       stripe_bank_last4: '6789',
       stripe_bank_institution: 'Demo Bank (test data)',
       avg_check_amount: 32,
+      // Fixed, memorable typed check-in code for the browser demo (no camera there).
+      checkin_code: 'CAFE42',
     },
   });
 

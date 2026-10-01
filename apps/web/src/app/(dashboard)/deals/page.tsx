@@ -10,6 +10,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { createSupabaseBrowserClient } from '@/lib/supabase-client';
+import StatusMessage from '@/components/StatusMessage';
 
 interface Deal {
   id: string;
@@ -26,6 +27,8 @@ export default function DealsPage() {
   const supabase = createSupabaseBrowserClient();
   const [deals, setDeals] = useState<Deal[]>([]);
   const [loading, setLoading] = useState(true);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchDeals = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -54,20 +57,38 @@ export default function DealsPage() {
   }, []);// eslint-disable-line react-hooks/exhaustive-deps
 
   const toggleActive = async (id: string, currentlyActive: boolean) => {
-    await supabase.from('deals').update({ is_active: !currentlyActive }).eq('id', id);
+    setError(null);
+    const deal = deals.find((d) => d.id === id);
+    const { error: err } = await supabase.from('deals').update({ is_active: !currentlyActive }).eq('id', id);
+    if (err) {
+      setError(
+        /row-level security/i.test(err.message)
+          ? "This deal can't be turned on while a payment is overdue. Retry the payment on the Billing page."
+          : err.message
+      );
+      return;
+    }
+    setNotice(`"${deal?.title ?? 'Deal'}" is now ${currentlyActive ? 'hidden from riders' : 'live'}.`);
     fetchDeals();
   };
 
   const deleteDeal = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this deal?')) return;
-    await supabase.from('deals').delete().eq('id', id);
+    const deal = deals.find((d) => d.id === id);
+    if (!confirm(`Delete "${deal?.title ?? 'this deal'}"? This can't be undone.`)) return;
+    setError(null);
+    const { error: err } = await supabase.from('deals').delete().eq('id', id);
+    if (err) {
+      setError(err.message);
+      return;
+    }
+    setNotice(`"${deal?.title ?? 'Deal'}" was deleted.`);
     fetchDeals();
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64" role="status" aria-label="Loading deals">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      <div className="flex items-center justify-center h-64" role="status">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" aria-hidden="true" />
         <span className="sr-only">Loading deals...</span>
       </div>
     );
@@ -82,12 +103,14 @@ export default function DealsPage() {
         </Link>
       </div>
 
+      <StatusMessage notice={notice} error={error} />
+
       {deals.length === 0 ? (
         <div className="card text-center py-12">
           <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
           </svg>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No deals yet</h3>
+          <h2 className="text-lg font-medium text-gray-900 mb-2">No deals yet</h2>
           <p className="text-gray-600 mb-4">Create your first deal to start attracting riders.</p>
           <Link href="/deals/new" className="btn-primary inline-block">
             Create your first deal
@@ -110,10 +133,10 @@ export default function DealsPage() {
             <tbody>
               {deals.map((deal) => (
                 <tr key={deal.id} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="py-3 px-4">
+                  <th scope="row" className="text-left font-normal py-3 px-4">
                     <div className="font-medium text-gray-900">{deal.title}</div>
                     <div className="text-gray-600 text-xs mt-0.5 line-clamp-1">{deal.description}</div>
-                  </td>
+                  </th>
                   <td className="py-3 px-4 text-gray-600">
                     {deal.discount_type === 'percentage'
                       ? `${deal.discount_value}%`
@@ -138,23 +161,27 @@ export default function DealsPage() {
                   </td>
                   <td className="py-3 px-4">
                     <div className="flex items-center justify-end gap-2">
+                      {/* Each action names its deal for screen readers; min 24px targets (WCAG 2.5.8). */}
                       <Link
                         href={`/deals/${deal.id}/edit`}
-                        className="text-primary hover:text-primary-700 text-xs font-medium"
+                        className="inline-flex items-center min-h-[32px] px-2 rounded text-primary hover:text-primary-700 hover:bg-primary-50 text-sm font-medium"
                       >
-                        Edit
+                        Edit<span className="sr-only"> {deal.title}</span>
                       </Link>
                       <button
+                        type="button"
                         onClick={() => toggleActive(deal.id, deal.is_active)}
-                        className="text-gray-600 hover:text-gray-700 text-xs font-medium"
+                        className="inline-flex items-center min-h-[32px] px-2 rounded text-gray-700 hover:text-gray-900 hover:bg-gray-100 text-sm font-medium"
                       >
                         {deal.is_active ? 'Deactivate' : 'Activate'}
+                        <span className="sr-only"> {deal.title}</span>
                       </button>
                       <button
+                        type="button"
                         onClick={() => deleteDeal(deal.id)}
-                        className="text-red-500 hover:text-red-700 text-xs font-medium"
+                        className="inline-flex items-center min-h-[32px] px-2 rounded text-red-700 hover:text-red-800 hover:bg-red-50 text-sm font-medium"
                       >
-                        Delete
+                        Delete<span className="sr-only"> {deal.title}</span>
                       </button>
                     </div>
                   </td>

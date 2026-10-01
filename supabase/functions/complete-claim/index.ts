@@ -31,10 +31,27 @@ serve(async (req) => {
       });
     }
 
-    const { venue_id, claim_id } = await req.json();
+    const body = await req.json();
+    const { claim_id } = body;
+    let venue_id: string | undefined = body.venue_id;
+
+    // Riders who can't scan the QR code can type the venue's check-in code
+    // instead (accessibility). Codes are only shown at the venue.
+    if (!venue_id && typeof body.checkin_code === 'string') {
+      const code = body.checkin_code.trim().toUpperCase().replace(/[\s-]/g, '');
+      const lookup = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+      const { data: venueByCode } = await lookup.from('venues').select('id').eq('checkin_code', code).maybeSingle();
+      if (!venueByCode) {
+        return new Response(JSON.stringify({ error: "That code doesn't match a venue. Check it with the staff." }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      venue_id = venueByCode.id;
+    }
 
     if (!venue_id) {
-      return new Response(JSON.stringify({ error: 'venue_id is required' }), {
+      return new Response(JSON.stringify({ error: 'venue_id or checkin_code is required' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -43,7 +60,8 @@ serve(async (req) => {
     // Find the rider's active claim at this venue
     let query = supabase
       .from('deal_claims')
-      .select('*, deal:deals(*, venue:venues(*))')
+      // Users can read public venue columns only (billing fields are private).
+      .select('*, deal:deals(*, venue:venues(id, name, address, city, state, latitude, longitude, image_url, is_active, payment_suspended, owner_user_id))')
       .eq('rider_user_id', user.id)
       .eq('status', 'reserved');
 

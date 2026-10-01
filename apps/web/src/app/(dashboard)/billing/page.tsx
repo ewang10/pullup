@@ -12,6 +12,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import PaymentMethodCard, { type BankInfo } from '@/components/PaymentMethodCard';
 import { createSupabaseBrowserClient } from '@/lib/supabase-client';
+import StatusMessage from '@/components/StatusMessage';
 import { formatCurrency } from '@/lib/claims';
 import { SPLIT_DRIVER_KICKBACK, SPLIT_PLATFORM_FEE, SPLIT_RIDE_CREDIT } from '@pullup/shared';
 
@@ -152,14 +153,7 @@ export default function BillingPage() {
         </section>
       )}
 
-      <div aria-live="polite">
-        {notice && <p className="mb-4 p-3 rounded-lg bg-green-50 border border-green-200 text-green-900 text-sm">{notice}</p>}
-      </div>
-      {error && (
-        <p role="alert" className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-800 text-sm">
-          {error}
-        </p>
-      )}
+      <StatusMessage notice={notice} error={error} />
 
       <PaymentMethodCard bank={bank} venueName={venue?.name ?? ''} email={email} onLinked={reload} />
 

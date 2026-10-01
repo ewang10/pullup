@@ -10,6 +10,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase-client';
+import StatusMessage from '@/components/StatusMessage';
 import { fetchRole, isAdminRole } from '@/lib/roles';
 import { formatCurrency } from '@/lib/claims';
 
@@ -177,16 +178,7 @@ export default function StaffDriversPage() {
         </div>
       </div>
 
-      <div aria-live="polite">
-        {notice && (
-          <p className="mb-4 p-3 rounded-lg bg-green-50 border border-green-200 text-green-900 text-sm">{notice}</p>
-        )}
-      </div>
-      {error && (
-        <p role="alert" className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-800 text-sm">
-          {error}
-        </p>
-      )}
+      <StatusMessage notice={notice} error={error} />
 
       {loading ? (
         <div className="flex justify-center py-16" role="status">
@@ -286,6 +278,8 @@ export default function StaffDriversPage() {
                       onChange={(e) => setReason(e.target.value)}
                       className="input-field mt-3 min-h-[72px]"
                       placeholder="Or write your own reason."
+                      // Move focus into the form that just opened.
+                      autoFocus
                     />
                     {formOpen === 'suspend' && (
                       <div className="mt-3 text-sm">

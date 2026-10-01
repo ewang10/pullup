@@ -121,7 +121,7 @@ export default function DriverCodeScreen() {
             accessibilityLabel={`${item.rider_display_name}, ${item.completed_visits} visits, earned ${item.earned.toFixed(2)}`}
           >
             <View style={styles.riderAvatar} importantForAccessibility="no-hide-descendants">
-              <Text style={styles.riderAvatarText}>
+              <Text style={styles.riderAvatarText} maxFontSizeMultiplier={1.4}>
                 {item.rider_display_name
                   .replace(".", "")
                   .split(" ")

@@ -68,7 +68,13 @@ function ClaimCard({
   const colors = statusColors[claim.status] ?? statusColors.cancelled;
 
   return (
-    <Pressable style={styles.card} onPress={onPress}>
+    <Pressable
+      style={styles.card}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${claim.deal.title} at ${claim.deal.venue.name}, ${claim.status}${isReserved ? `, ${countdown}` : ""}`}
+      accessibilityHint={isReserved ? "Opens the claim to check in" : "Opens the claim details"}
+    >
       <View style={styles.cardTop}>
         <View style={[styles.statusBadge, { backgroundColor: colors.bg }]}>
           <Text style={[styles.statusText, { color: colors.text }]}>
@@ -128,7 +134,7 @@ export default function ClaimsScreen() {
 
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyIcon}>📋</Text>
+        <Text style={styles.emptyIcon} accessible={false} importantForAccessibility="no">📋</Text>
         <Text style={styles.emptyTitle}>No claims yet</Text>
         <Text style={styles.emptySubtitle}>
           Browse deals and claim your first discount!
@@ -136,6 +142,7 @@ export default function ClaimsScreen() {
         <Pressable
           style={styles.browseButton}
           onPress={() => router.push("/(tabs)/deals")}
+          accessibilityRole="button"
         >
           <Text style={styles.browseButtonText}>Browse Deals</Text>
         </Pressable>
@@ -146,7 +153,7 @@ export default function ClaimsScreen() {
   if (!initialLoaded) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#5B53EE" />
+        <ActivityIndicator size="large" color="#5B53EE" accessibilityLabel="Loading claims" />
       </View>
     );
   }

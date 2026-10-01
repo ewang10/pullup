@@ -9,6 +9,8 @@ export default function QRCodePage() {
   const [venueId, setVenueId] = useState<string | null>(null);
   const [venueName, setVenueName] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  // Typed alternative to scanning, for riders who can't use the camera.
+  const [checkinCode, setCheckinCode] = useState<string | null>(null);
   const qrRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -25,6 +27,8 @@ export default function QRCodePage() {
       if (venue) {
         setVenueId(venue.id);
         setVenueName(venue.name);
+        const { data: privateRows } = await supabase.rpc('get_my_venue_private');
+        setCheckinCode((privateRows as { checkin_code: string }[] | null)?.[0]?.checkin_code ?? null);
       }
       setLoading(false);
     }
@@ -33,6 +37,7 @@ export default function QRCodePage() {
   }, [supabase]);
 
   const qrValue = venueId ? `pullup://venue/${venueId}/verify` : '';
+  const esc = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
   const handleDownload = () => {
     if (!qrRef.current) return;
@@ -76,7 +81,7 @@ export default function QRCodePage() {
       <!DOCTYPE html>
       <html>
         <head>
-          <title>PullUp QR Code - ${venueName}</title>
+          <title>PullUp QR Code - ${esc(venueName)}</title>
           <style>
             body {
               display: flex;
@@ -88,15 +93,17 @@ export default function QRCodePage() {
               font-family: system-ui, sans-serif;
             }
             h1 { color: #1A1A2E; margin-bottom: 8px; }
-            p { color: #6b7280; margin-top: 0; }
+            p { color: #4b5563; margin-top: 0; }
+            .code { font-family: ui-monospace, monospace; font-size: 28px; letter-spacing: 6px; color: #1A1A2E; font-weight: 700; }
             .qr-container { margin: 24px 0; }
             .footer { color: #4b5563; font-size: 14px; margin-top: 24px; }
           </style>
         </head>
         <body>
-          <h1>${venueName}</h1>
+          <h1>${esc(venueName)}</h1>
           <p>Scan to verify your visit</p>
           <div class="qr-container">${svgData}</div>
+          ${checkinCode ? `<p>Can't scan? Enter this code in the app:</p><p class="code">${esc(checkinCode)}</p>` : ''}
           <p class="footer">Powered by PullUp</p>
         </body>
       </html>
@@ -107,8 +114,9 @@ export default function QRCodePage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      <div className="flex items-center justify-center h-64" role="status">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" aria-hidden="true" />
+        <span className="sr-only">Loading…</span>
       </div>
     );
   }
@@ -123,7 +131,7 @@ export default function QRCodePage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Venue QR Code</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Check-in QR code</h1>
 
       <div className="max-w-lg mx-auto">
         <div className="card text-center">
@@ -134,6 +142,8 @@ export default function QRCodePage() {
 
           <div ref={qrRef} className="inline-block p-6 bg-white rounded-xl border-2 border-gray-100 mb-6">
             <QRCodeSVG
+              role="img"
+              aria-label={`Check-in QR code for ${venueName}`}
               value={qrValue}
               size={256}
               bgColor="#ffffff"
@@ -143,17 +153,25 @@ export default function QRCodePage() {
             />
           </div>
 
-          <p className="text-xs text-gray-600 font-mono mb-6 break-all">{qrValue}</p>
+          {checkinCode && (
+            <div className="mb-6">
+              <p className="text-sm text-gray-700">Can&apos;t scan? Riders can type this code instead:</p>
+              <p className="mt-1 font-mono text-3xl font-bold tracking-[0.3em] text-gray-900" aria-label={`Check-in code ${checkinCode.split('').join(' ')}`}>
+                {checkinCode}
+              </p>
+              <p className="mt-1 text-xs text-gray-600">It&apos;s printed with the QR code. Share it only in person.</p>
+            </div>
+          )}
 
           <div className="flex gap-3 justify-center">
             <button onClick={handleDownload} className="btn-primary flex items-center gap-2">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
               Download PNG
             </button>
             <button onClick={handlePrint} className="btn-secondary flex items-center gap-2">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
               </svg>
               Print
@@ -162,18 +180,18 @@ export default function QRCodePage() {
         </div>
 
         <div className="card mt-6">
-          <h3 className="font-semibold text-gray-900 mb-3">How it works</h3>
-          <ol className="space-y-3 text-sm text-gray-600">
+          <h2 className="font-semibold text-gray-900 mb-3">How it works</h2>
+          <ol className="space-y-3 text-sm text-gray-700">
             <li className="flex gap-3">
-              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary-50 text-primary flex items-center justify-center text-xs font-bold">1</span>
+              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary-50 text-primary flex items-center justify-center text-xs font-bold" aria-hidden="true">1</span>
               <span>Print and display the QR code at your entrance or checkout area.</span>
             </li>
             <li className="flex gap-3">
-              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary-50 text-primary flex items-center justify-center text-xs font-bold">2</span>
-              <span>Riders who claimed a deal scan the QR code with the PullUp app.</span>
+              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary-50 text-primary flex items-center justify-center text-xs font-bold" aria-hidden="true">2</span>
+              <span>Riders who claimed a deal scan the QR code with the PullUp app, or type the code below it.</span>
             </li>
             <li className="flex gap-3">
-              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary-50 text-primary flex items-center justify-center text-xs font-bold">3</span>
+              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary-50 text-primary flex items-center justify-center text-xs font-bold" aria-hidden="true">3</span>
               <span>The deal is automatically verified and the discount is applied.</span>
             </li>
           </ol>

@@ -13,6 +13,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase-client';
+import StatusMessage from '@/components/StatusMessage';
 import { formatCurrency } from '@/lib/claims';
 import { fetchRole, isAdminRole } from '@/lib/roles';
 import { RECEIPTS_BUCKET, receiptPathFromStored, type ReceiptType } from '@pullup/shared';
@@ -194,16 +195,7 @@ export default function StaffReceiptsPage() {
         </p>
       </div>
 
-      <div aria-live="polite">
-        {notice && (
-          <p className="mb-4 p-3 rounded-lg bg-green-50 border border-green-200 text-green-900 text-sm">{notice}</p>
-        )}
-      </div>
-      {error && (
-        <p role="alert" className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-800 text-sm">
-          {error}
-        </p>
-      )}
+      <StatusMessage notice={notice} error={error} />
 
       {loading ? (
         <div className="flex justify-center py-16" role="status">

@@ -46,7 +46,8 @@ serve(async (req) => {
     // Fetch the deal
     const { data: deal, error: dealError } = await supabase
       .from('deals')
-      .select('*, venue:venues(*)')
+      // Users can read public venue columns only (billing fields are private).
+      .select('*, venue:venues(id, name, address, city, state, latitude, longitude, image_url, is_active, payment_suspended, owner_user_id)')
       .eq('id', deal_id)
       .eq('is_active', true)
       .single();

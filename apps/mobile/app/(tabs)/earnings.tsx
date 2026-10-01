@@ -127,7 +127,7 @@ export default function EarningsScreen() {
         <Text style={styles.sectionTitle}>How Earnings Work</Text>
         <View style={styles.infoCard}>
           <View style={styles.infoRow}>
-            <Text style={styles.infoStep}>1</Text>
+            <Text style={styles.infoStep} maxFontSizeMultiplier={1.4}>1</Text>
             <View style={styles.infoContent}>
               <Text style={styles.infoTitle}>Show your driver code</Text>
               <Text style={styles.infoDescription}>
@@ -136,7 +136,7 @@ export default function EarningsScreen() {
             </View>
           </View>
           <View style={styles.infoRow}>
-            <Text style={styles.infoStep}>2</Text>
+            <Text style={styles.infoStep} maxFontSizeMultiplier={1.4}>2</Text>
             <View style={styles.infoContent}>
               <Text style={styles.infoTitle}>Rider completes the visit</Text>
               <Text style={styles.infoDescription}>
@@ -145,7 +145,7 @@ export default function EarningsScreen() {
             </View>
           </View>
           <View style={styles.infoRow}>
-            <Text style={styles.infoStep}>3</Text>
+            <Text style={styles.infoStep} maxFontSizeMultiplier={1.4}>3</Text>
             <View style={styles.infoContent}>
               <Text style={styles.infoTitle}>Get paid</Text>
               <Text style={styles.infoDescription}>

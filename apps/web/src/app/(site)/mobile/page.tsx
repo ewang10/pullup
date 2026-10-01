@@ -20,6 +20,7 @@ const EXPO_GO_URL =
 const VIDEO_URL = process.env.NEXT_PUBLIC_DEMO_VIDEO_URL;
 const APPETIZE_URL = process.env.NEXT_PUBLIC_APPETIZE_URL;
 const DEMO_DRIVER_CODE = process.env.NEXT_PUBLIC_DEMO_DRIVER_CODE;
+const DEMO_CHECKIN_CODE = process.env.NEXT_PUBLIC_DEMO_CHECKIN_CODE;
 const ANDROID_APK_URL = process.env.NEXT_PUBLIC_ANDROID_APK_URL;
 const EXPO_GO_PUBLIC = process.env.NEXT_PUBLIC_EXPO_GO_PUBLIC === 'true';
 const CAN_TRY = Boolean(APPETIZE_URL || ANDROID_APK_URL || EXPO_GO_PUBLIC);
@@ -117,8 +118,7 @@ export default function TryMobilePage() {
               Launch the app in your browser<span className="sr-only"> (opens in a new tab)</span>
             </a>
             <p className="text-sm text-gray-600 mt-3">
-              Location is simulated, so you&apos;ll see the demo venue. Scanning a venue&apos;s QR code needs a real
-              camera and won&apos;t work here. Sessions are time-limited.
+              Location is simulated, so you&apos;ll see the demo venue. There&apos;s no camera, so check in by typing the venue&apos;s code (below). Sessions are time-limited.
             </p>
           </section>
         )}
@@ -249,6 +249,14 @@ export default function TryMobilePage() {
               <strong className="text-gray-900">No deals near you?</strong> You&apos;ll see PullUp Demo Café, a sample
               venue in Sacramento, so you can still explore claiming a deal.
             </li>
+            {DEMO_CHECKIN_CODE && (
+              <li>
+                <strong className="text-gray-900">Check in without a camera:</strong> on an active claim, under
+                &ldquo;Can&apos;t scan the QR code?&rdquo;, enter{' '}
+                <code className="font-mono font-semibold text-gray-900">{DEMO_CHECKIN_CODE}</code>, the demo
+                café&apos;s check-in code.
+              </li>
+            )}
             {DEMO_DRIVER_CODE && (
               <li>
                 <strong className="text-gray-900">Try the driver code:</strong> sign in as the demo rider, claim a

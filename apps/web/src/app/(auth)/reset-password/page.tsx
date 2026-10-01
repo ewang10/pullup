@@ -119,8 +119,9 @@ export default function ResetPasswordPage() {
 
   if (mode === 'loading') {
     return (
-      <div className="flex items-center justify-center h-32">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      <div className="flex items-center justify-center h-32" role="status">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" aria-hidden="true" />
+        <span className="sr-only">Loading…</span>
       </div>
     );
   }

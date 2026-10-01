@@ -18,7 +18,7 @@ export default function WelcomeScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.heroSection}>
         <View style={styles.logoContainer}>
-          <Text style={styles.logoText} accessibilityRole="header">
+          <Text style={styles.logoText} maxFontSizeMultiplier={1.4} accessibilityRole="header">
             PullUp
           </Text>
         </View>

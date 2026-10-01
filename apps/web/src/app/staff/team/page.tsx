@@ -10,6 +10,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase-client';
+import StatusMessage from '@/components/StatusMessage';
 
 type TeamRole = 'platform_admin' | 'platform_support';
 
@@ -99,14 +100,7 @@ export default function TeamPage() {
         drivers, extend receipt deadlines and manage this team.
       </p>
 
-      <div aria-live="polite">
-        {notice && <p className="mb-4 p-3 rounded-lg bg-green-50 border border-green-200 text-green-900 text-sm">{notice}</p>}
-      </div>
-      {error && (
-        <p role="alert" className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-800 text-sm">
-          {error}
-        </p>
-      )}
+      <StatusMessage notice={notice} error={error} />
 
       <section className="card mb-8" aria-labelledby="members-heading">
         <h2 id="members-heading" className="text-lg font-semibold text-gray-900 mb-3">Members</h2>
@@ -138,7 +132,8 @@ export default function TeamPage() {
                       >
                         {removingId === m.id ? 'Removing…' : 'Yes, remove'}
                       </button>
-                      <button type="button" onClick={() => setConfirmId(null)} className="btn-secondary text-sm">
+                      {/* Focus the safe choice so Enter doesn't remove by accident. */}
+                      <button type="button" onClick={() => setConfirmId(null)} className="btn-secondary text-sm" autoFocus>
                         Cancel
                       </button>
                     </div>

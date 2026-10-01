@@ -38,7 +38,7 @@ export default function ProfileScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.avatarContainer}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>
+            <Text style={styles.avatarText} maxFontSizeMultiplier={1.4}>
               {profile?.full_name
                 ? profile.full_name
                     .split(" ")

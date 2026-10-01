@@ -185,7 +185,7 @@ export default function SignUpScreen() {
                   accessibilityRole="button"
                   accessibilityState={{ selected: role === "rider" }}
                 >
-                  <Text style={styles.roleIcon}>🏍</Text>
+                  <Text style={styles.roleIcon} maxFontSizeMultiplier={1.4}>🏍</Text>
                   <Text
                     style={[
                       styles.roleText,
@@ -206,7 +206,7 @@ export default function SignUpScreen() {
                   accessibilityRole="button"
                   accessibilityState={{ selected: role === "driver" }}
                 >
-                  <Text style={styles.roleIcon}>🚗</Text>
+                  <Text style={styles.roleIcon} maxFontSizeMultiplier={1.4}>🚗</Text>
                   <Text
                     style={[
                       styles.roleText,

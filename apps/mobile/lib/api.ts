@@ -312,6 +312,28 @@ export async function completeClaim(
 }
 
 /**
+ * Check in by typing the venue's check-in code instead of scanning its QR
+ * code (for riders who can't use the camera). Same rules as scanning.
+ */
+export async function completeClaimWithCode(
+  claimId: string,
+  checkinCode: string
+): Promise<ApiResult<{ completed: true }>> {
+  try {
+    const { error } = await supabase.functions.invoke("complete-claim", {
+      body: { claim_id: claimId, checkin_code: checkinCode },
+    });
+    if (error) {
+      const body = await (error as { context?: Response }).context?.json?.().catch(() => null);
+      return { data: null, error: body?.error ?? error.message };
+    }
+    return { data: { completed: true }, error: null };
+  } catch {
+    return { data: null, error: "Check-in failed" };
+  }
+}
+
+/**
  * Link the rider's driver to an active claim using the driver's code, so the
  * driver earns the bonus when the visit completes. Calls `link-driver`, which
  * only accepts reserved claims with no driver linked yet.

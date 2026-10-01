@@ -246,7 +246,7 @@ export default function ScanScreen() {
         <View style={styles.resultOverlay}>
           <View style={styles.resultCard}>
             <View style={styles.successIcon}>
-              <Text style={styles.successIconText}>{'\u2713'}</Text>
+              <Text style={styles.successIconText} maxFontSizeMultiplier={1.4}>{'\u2713'}</Text>
             </View>
             <Text style={styles.resultTitle}>{isDriverMode ? "Driver added!" : "Verified!"}</Text>
             <Text style={styles.resultMessage}>
@@ -263,7 +263,7 @@ export default function ScanScreen() {
         <View style={styles.resultOverlay}>
           <View style={styles.resultCard}>
             <View style={styles.errorIcon}>
-              <Text style={styles.errorIconText}>!</Text>
+              <Text style={styles.errorIconText} maxFontSizeMultiplier={1.4}>!</Text>
             </View>
             <Text style={styles.resultTitle}>Scan Failed</Text>
             <Text style={styles.resultMessage}>

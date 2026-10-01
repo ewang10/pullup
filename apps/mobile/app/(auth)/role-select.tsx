@@ -7,7 +7,7 @@ export default function RoleSelectScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Pressable onPress={() => router.back()} style={styles.backButton}>
+      <Pressable onPress={() => router.back()} style={styles.backButton} accessibilityRole="button" accessibilityLabel="Back">
         <Text style={styles.backText}>Back</Text>
       </Pressable>
 
@@ -20,6 +20,8 @@ export default function RoleSelectScreen() {
         <View style={styles.cards}>
           <Pressable
             style={styles.card}
+            accessibilityRole="button"
+            accessibilityLabel="I am a rider. Browse deals from local venues and save on every visit."
             onPress={() =>
               router.push({
                 pathname: "/(auth)/sign-up",
@@ -28,7 +30,7 @@ export default function RoleSelectScreen() {
             }
           >
             <View style={styles.cardIconContainer}>
-              <Text style={styles.cardIcon}>🏍</Text>
+              <Text style={styles.cardIcon} maxFontSizeMultiplier={1.4}>🏍</Text>
             </View>
             <Text style={styles.cardTitle}>I'm a Rider</Text>
             <Text style={styles.cardDescription}>
@@ -44,6 +46,8 @@ export default function RoleSelectScreen() {
 
           <Pressable
             style={styles.card}
+            accessibilityRole="button"
+            accessibilityLabel="I am a driver. Earn a bonus when riders you drive complete a PullUp deal."
             onPress={() =>
               router.push({
                 pathname: "/(auth)/sign-up",
@@ -52,7 +56,7 @@ export default function RoleSelectScreen() {
             }
           >
             <View style={[styles.cardIconContainer, styles.driverIconBg]}>
-              <Text style={styles.cardIcon}>🚗</Text>
+              <Text style={styles.cardIcon} maxFontSizeMultiplier={1.4}>🚗</Text>
             </View>
             <Text style={styles.cardTitle}>I'm a Driver</Text>
             <Text style={styles.cardDescription}>

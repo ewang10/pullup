@@ -24,7 +24,7 @@ import {
 } from "react-native";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
-import { fetchMyClaims, cancelClaim, uploadReceipt, linkDriver } from "../../lib/api";
+import { fetchMyClaims, cancelClaim, uploadReceipt, linkDriver, completeClaimWithCode } from "../../lib/api";
 import type { DealClaimWithDeal, ClaimStatus } from "@pullup/shared";
 import { CLAIM_STATUSES, parseDriverCode, receiptDeadline, type ReceiptType } from "@pullup/shared";
 
@@ -107,8 +107,11 @@ function StepProgress({ status }: { status: ClaimStatus }) {
   return (
     <View
       style={stepStyles.container}
-      accessibilityLabel={`Claim progress: step ${currentStep + 1} of ${STEPS.length}`}
+      // One element for screen readers: the step number and its name.
+      accessible
+      accessibilityLabel={`Claim progress: step ${currentStep + 1} of ${STEPS.length}, ${STEPS[currentStep]?.label ?? ""}`}
       accessibilityRole="progressbar"
+      accessibilityValue={{ min: 1, max: STEPS.length, now: currentStep + 1 }}
     >
       {STEPS.map((step, index) => {
         const isComplete = index <= currentStep;
@@ -124,9 +127,9 @@ function StepProgress({ status }: { status: ClaimStatus }) {
               ]}
             >
               {isComplete ? (
-                <Text style={stepStyles.checkText}>{"\u2713"}</Text>
+                <Text style={stepStyles.checkText} maxFontSizeMultiplier={1.4}>{"\u2713"}</Text>
               ) : (
-                <Text style={stepStyles.stepNumber}>{index + 1}</Text>
+                <Text style={stepStyles.stepNumber} maxFontSizeMultiplier={1.4}>{index + 1}</Text>
               )}
             </View>
 
@@ -250,6 +253,10 @@ export default function ClaimDetailScreen() {
   const [linkingDriver, setLinkingDriver] = useState(false);
   const [linkedDriverName, setLinkedDriverName] = useState<string | null>(null);
   const [uploadingType, setUploadingType] = useState<ReceiptType | null>(null);
+  // Typed check-in, for riders who can't scan the venue QR code.
+  const [venueCode, setVenueCode] = useState("");
+  const [checkingIn, setCheckingIn] = useState(false);
+  const [checkinError, setCheckinError] = useState<string | null>(null);
 
   const { timeLeft, isExpired } = useCountdown(claim?.expires_at);
 
@@ -308,6 +315,26 @@ export default function ClaimDetailScreen() {
     }
     setLinkedDriverName(data?.driver_name ?? null);
     setDriverCode("");
+    await loadClaim();
+  };
+
+  const handleCodeCheckIn = async () => {
+    if (!claim) return;
+    const code = venueCode.trim().toUpperCase().replace(/[\s-]/g, "");
+    if (code.length !== 6) {
+      setCheckinError("Venue codes are 6 letters and numbers.");
+      return;
+    }
+    setCheckingIn(true);
+    setCheckinError(null);
+    const { error: err } = await completeClaimWithCode(claim.id, code);
+    setCheckingIn(false);
+    if (err) {
+      setCheckinError(err);
+      return;
+    }
+    setVenueCode("");
+    Alert.alert("Checked in", "Your visit is confirmed. Enjoy your deal!");
     await loadClaim();
   };
 
@@ -405,7 +432,7 @@ export default function ClaimDetailScreen() {
     return (
       <View style={styles.centered}>
         <View style={styles.errorIconContainer}>
-          <Text style={styles.errorIconText}>!</Text>
+          <Text style={styles.errorIconText} maxFontSizeMultiplier={1.4}>!</Text>
         </View>
         <Text style={styles.errorTitle}>Could not load claim</Text>
         <Text style={styles.errorMessage}>{error ?? "Claim not found"}</Text>
@@ -578,6 +605,54 @@ export default function ClaimDetailScreen() {
             )}
           </View>
         ) : null}
+
+        {/* Check in without the camera */}
+        {isReserved && !isExpired && (
+          <View style={styles.card}>
+            <Text style={styles.driverTitle} accessibilityRole="header">Can&apos;t scan the QR code?</Text>
+            <Text style={styles.driverText}>
+              Ask the staff for the venue&apos;s 6-character check-in code and type it here.
+            </Text>
+            <View style={[styles.driverInputRow, { marginTop: 12 }]}>
+              <TextInput
+                style={styles.driverInput}
+                value={venueCode}
+                onChangeText={(t) => {
+                  setVenueCode(t.toUpperCase());
+                  setCheckinError(null);
+                }}
+                placeholder="e.g. CAFE42"
+                placeholderTextColor="#6B7280"
+                autoCapitalize="characters"
+                autoCorrect={false}
+                maxLength={8}
+                editable={!checkingIn}
+                accessibilityLabel="Venue check-in code"
+                returnKeyType="done"
+                onSubmitEditing={handleCodeCheckIn}
+              />
+              <Pressable
+                style={[styles.driverAddButton, (checkingIn || !venueCode) && styles.buttonDisabled]}
+                onPress={handleCodeCheckIn}
+                disabled={checkingIn || !venueCode}
+                accessibilityRole="button"
+                accessibilityLabel="Check in with code"
+                accessibilityState={{ disabled: checkingIn || !venueCode, busy: checkingIn }}
+              >
+                {checkingIn ? (
+                  <ActivityIndicator color="#FFFFFF" accessibilityLabel="Checking in" />
+                ) : (
+                  <Text style={styles.driverAddButtonText}>Check in</Text>
+                )}
+              </Pressable>
+            </View>
+            {checkinError && (
+              <Text style={styles.driverError} accessibilityRole="alert" accessibilityLiveRegion="polite">
+                {checkinError}
+              </Text>
+            )}
+          </View>
+        )}
 
         {/* Receipts: only after check-in, only what this deal requires */}
         {isCompleted && requiredReceipts.length > 0 && (
