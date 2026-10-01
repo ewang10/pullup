@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 /**
  * Auth layout for login and registration pages.
  * Provides a centered card layout with a dark gradient background
@@ -24,9 +26,12 @@ export default function AuthLayout({
 
       <div className="w-full max-w-md relative z-10">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white">
-            Pull<span className="text-primary-300">Up</span>
-          </h1>
+          <p className="text-3xl font-bold text-white">
+            <Link href="/" className="rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-white">
+              Pull<span className="text-primary-300">Up</span>
+              <span className="sr-only"> home</span>
+            </Link>
+          </p>
           <p className="text-gray-400 mt-2">Venue Dashboard</p>
         </div>
         <main id="main-content" className="card">

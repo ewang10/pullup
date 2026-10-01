@@ -1,8 +1,18 @@
-import { View, Text, StyleSheet, Pressable, Alert, ScrollView } from "react-native";
+import { View, Text, StyleSheet, Pressable, Alert, ScrollView, Linking } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useAuth } from "../../lib/auth";
 import { useAppStore } from "../../lib/store";
+
+// Help and legal pages live on the public website so they can change without an app update.
+const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL ?? "https://pullup-kappa-gray.vercel.app";
+const HELP_LINKS = [
+  { path: "/faq", label: "Help & FAQ" },
+  { path: "/how-it-works", label: "How PullUp works" },
+  { path: "/support", label: "Contact support" },
+  { path: "/privacy", label: "Privacy policy" },
+  { path: "/terms", label: "Terms of service" },
+];
 
 export default function ProfileScreen() {
   const { user, profile, driverProfile, role, signOut } = useAuth();
@@ -73,7 +83,7 @@ export default function ProfileScreen() {
 
           {driverProfile?.referral_code && (
             <View style={styles.menuItem}>
-              <Text style={styles.menuLabel}>Referral Code</Text>
+              <Text style={styles.menuLabel}>Driver code</Text>
               <Text style={styles.menuValueHighlight}>
                 {driverProfile.referral_code}
               </Text>
@@ -91,7 +101,7 @@ export default function ProfileScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Settings</Text>
+          <Text style={styles.sectionTitle} accessibilityRole="header">Settings</Text>
 
           <Pressable
             style={styles.menuButton}
@@ -103,20 +113,23 @@ export default function ProfileScreen() {
             <Text style={styles.menuChevron} aria-hidden>&gt;</Text>
           </Pressable>
 
-          <Pressable style={styles.menuButton}>
-            <Text style={styles.menuLabel}>Notifications</Text>
-            <Text style={styles.menuChevron}>&gt;</Text>
-          </Pressable>
+        </View>
 
-          <Pressable style={styles.menuButton}>
-            <Text style={styles.menuLabel}>Privacy</Text>
-            <Text style={styles.menuChevron}>&gt;</Text>
-          </Pressable>
-
-          <Pressable style={styles.menuButton}>
-            <Text style={styles.menuLabel}>Help & Support</Text>
-            <Text style={styles.menuChevron}>&gt;</Text>
-          </Pressable>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle} accessibilityRole="header">Help</Text>
+          {HELP_LINKS.map((l) => (
+            <Pressable
+              key={l.path}
+              style={styles.menuButton}
+              onPress={() => Linking.openURL(`${SITE_URL}${l.path}`)}
+              accessibilityRole="link"
+              accessibilityLabel={l.label}
+              accessibilityHint="Opens in your browser"
+            >
+              <Text style={styles.menuLabel}>{l.label}</Text>
+              <Text style={styles.menuChevron} aria-hidden>↗</Text>
+            </Pressable>
+          ))}
         </View>
 
         <Pressable

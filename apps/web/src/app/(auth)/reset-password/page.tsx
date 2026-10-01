@@ -127,9 +127,9 @@ export default function ResetPasswordPage() {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-gray-900 mb-2">
+      <h1 className="text-2xl font-bold text-gray-900 mb-2">
         {mode === 'request' ? 'Reset your password' : 'Set a new password'}
-      </h2>
+      </h1>
       <p className="text-sm text-gray-600 mb-6">
         {mode === 'request'
           ? 'Enter your email and we\'ll send you a link to reset your password.'

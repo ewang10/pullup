@@ -96,11 +96,11 @@ function LoginForm() {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">Sign in to your account</h2>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Sign in to your account</h1>
 
       {DEMO_ACCOUNTS.length > 0 && (
         <section className="mb-6 p-4 bg-indigo-50 border border-indigo-200 rounded-lg text-sm" aria-labelledby="demo-heading">
-          <h3 id="demo-heading" className="font-medium text-gray-900">Just looking around?</h3>
+          <h2 id="demo-heading" className="font-medium text-gray-900">Just looking around?</h2>
           <p className="mt-1 text-gray-700">Try a demo account. The password is shown so anyone can sign in.</p>
           <ul className="mt-3 space-y-3">
             {DEMO_ACCOUNTS.map((a) => (

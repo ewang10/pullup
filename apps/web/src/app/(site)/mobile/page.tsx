@@ -74,13 +74,10 @@ function Video({ url }: { url: string }) {
 
 export default function TryMobilePage() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="gradient-dark">
+    <>
+      <section className="gradient-dark border-t border-white/10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 sm:py-14">
-          <p className="text-2xl font-bold text-white">
-            Pull<span className="text-primary-300">Up</span>
-          </p>
-          <h1 className="mt-6 text-3xl sm:text-4xl font-bold text-white">Try the mobile app</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold text-white">Try the mobile app</h1>
           <p className="mt-3 text-lg text-gray-300 max-w-2xl">
             Riders find deals at local venues and earn ride credit for showing up. Drivers earn a bonus for
             bringing them.{' '}
@@ -91,9 +88,9 @@ export default function TryMobilePage() {
               : 'Here’s a look at the app while a public version is on the way.'}
           </p>
         </div>
-      </header>
+      </section>
 
-      <main id="main-content" className="max-w-4xl mx-auto px-4 sm:px-6 py-10 space-y-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10 space-y-8">
         {VIDEO_URL && (
           <section className="card" aria-labelledby="video-heading">
             <h2 id="video-heading" className="text-xl font-semibold text-gray-900 mb-1">
@@ -305,11 +302,11 @@ export default function TryMobilePage() {
             Open venue dashboard
           </Link>
         </section>
-      </main>
 
-      <footer className="max-w-4xl mx-auto px-4 sm:px-6 pb-10 text-sm text-gray-600">
-        Built with Expo (React Native), Next.js, Supabase and Stripe (test mode).
-      </footer>
-    </div>
+        <p className="text-sm text-gray-600">
+          Built with Expo (React Native), Next.js, Supabase and Stripe (test mode).
+        </p>
+      </div>
+    </>
   );
 }

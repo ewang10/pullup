@@ -98,7 +98,7 @@ export default function SignupPage() {
 
   return (
     <div>
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">Create your venue account</h2>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Create your venue account</h1>
 
       {error && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
