@@ -21,8 +21,8 @@ jobs:
     if: github.event_name != 'deployment_status'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -39,7 +39,7 @@ jobs:
     if: github.event_name != 'deployment_status'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: supabase/setup-cli@v1
         with:
           version: latest
@@ -58,8 +58,8 @@ jobs:
     env:
       E2E_BASE_URL: ${{ vars.E2E_BASE_URL || 'https://pullup-kappa-gray.vercel.app' }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm

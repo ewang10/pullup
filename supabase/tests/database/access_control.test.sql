@@ -117,7 +117,7 @@ SELECT is((SELECT array_agg(venue_id) FROM public.get_my_venue_private()), ARRAY
           'get_my_venue_private returns only the caller''s venue');
 SELECT is((SELECT checkin_code FROM public.get_my_venue_private()), 'AAAAAA', 'a venue can read its own check-in code');
 SELECT throws_ok($$UPDATE public.venues SET stripe_customer_id = 'cus_mine' WHERE id = '00000000-0000-4000-8000-0000000000a1'$$,
-                 'P0001', 'Billing fields are managed by PullUp', 'a venue cannot change its billing ids');
+                 'P0001', 'Billing and check-in fields are managed by PullUp', 'a venue cannot change its billing ids');
 SELECT throws_ok($$UPDATE public.venues SET checkin_code = 'EASY11' WHERE id = '00000000-0000-4000-8000-0000000000a1'$$,
                  'P0001', NULL, 'a venue cannot pick its own check-in code');
 UPDATE public.venues SET name = 'Hijacked' WHERE id = '00000000-0000-4000-8000-0000000000b1';
