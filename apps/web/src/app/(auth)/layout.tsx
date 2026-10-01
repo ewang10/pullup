@@ -25,7 +25,7 @@ export default function AuthLayout({
       />
 
       <div className="w-full max-w-md relative z-10">
-        <div className="text-center mb-8">
+        <header className="text-center mb-8">
           <p className="text-3xl font-bold text-white">
             <Link href="/" className="rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-white">
               Pull<span className="text-primary-300">Up</span>
@@ -33,7 +33,7 @@ export default function AuthLayout({
             </Link>
           </p>
           <p className="text-gray-400 mt-2">Venue Dashboard</p>
-        </div>
+        </header>
         <main id="main-content" className="card">
           {children}
         </main>
