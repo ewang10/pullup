@@ -12,7 +12,10 @@ export const metadata: Metadata = {
   },
 };
 
-const EXAMPLE_COST = 15;
+// Homepage example: the minimum cost per visit against a typical bill, so the
+// cost reads as a share of real revenue rather than a bare fee.
+const EXAMPLE_COST = CLAIM_COST_MIN;
+const EXAMPLE_BILL = 60;
 
 const AUDIENCES = [
   {
@@ -138,8 +141,24 @@ export default function HomePage() {
           </p>
         </div>
         <div className="card">
-          <h3 className="font-semibold text-gray-900">Example: a venue pays {money(EXAMPLE_COST)} per visit</h3>
+          <h3 className="font-semibold text-gray-900">Example: a guest checks in and spends {money(EXAMPLE_BILL)}</h3>
           <dl className="mt-4 divide-y divide-gray-200">
+            <div className="flex justify-between gap-4 py-3">
+              <dt className="text-gray-800">The venue keeps the bill</dt>
+              <dd className="font-semibold text-gray-900">{money(EXAMPLE_BILL)}</dd>
+            </div>
+            <div className="flex justify-between gap-4 py-3">
+              <dt className="text-gray-800">
+                The venue pays for the visit
+                <span className="block text-sm text-gray-600">
+                  About {Math.round((EXAMPLE_COST / EXAMPLE_BILL) * 100)}% of the bill, and only because they showed up
+                </span>
+              </dt>
+              <dd className="font-semibold text-gray-900">{money(EXAMPLE_COST)}</dd>
+            </div>
+          </dl>
+          <h4 className="mt-6 text-sm font-semibold text-gray-900">Where that {money(EXAMPLE_COST)} goes</h4>
+          <dl className="mt-2 divide-y divide-gray-200">
             {[
               ['Rider’s ride credit (50%)', split.ride_credit_amount],
               ['Driver’s bonus (20%)', split.driver_kickback_amount],
