@@ -12,7 +12,7 @@ export default async function Layout({ children }: { children: React.ReactNode }
     data: { user },
   } = await supabase.auth.getUser();
   if (!user || (await fetchRole(supabase, user.id)) !== 'platform_admin') {
-    redirect('/staff/drivers');
+    redirect('/staff/drivers?denied=admin');
   }
   return children;
 }

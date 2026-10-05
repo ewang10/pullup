@@ -36,10 +36,12 @@ test('venue owners reach their dashboard but not staff pages', async ({ page }) 
     await page.goto(path);
     await expect(page, path).toHaveURL(new RegExp(path));
   }
-  // Signed-in users who open someone else's area land back on their own home.
+  // Signed-in users who open someone else's area land back on their own home
+  // with a message saying why.
   for (const path of [...STAFF_PAGES, '/staff/team']) {
     await page.goto(path);
-    await expect(page, path).toHaveURL(/\/dashboard/);
+    await expect(page, path).toHaveURL(/\/dashboard$/);
+    await expect(page.getByRole('status').filter({ hasText: 'That page is for the PullUp team' })).toBeFocused();
   }
 });
 
@@ -51,11 +53,13 @@ test('support staff reach reviews but not venue pages or team management', async
     await expect(page, path).toHaveURL(new RegExp(path));
   }
   await page.goto('/staff/team');
-  await expect(page).toHaveURL(/\/staff\/drivers/);
+  await expect(page).toHaveURL(/\/staff\/drivers$/);
+  await expect(page.getByRole('status').filter({ hasText: 'Only admins can manage the team' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Team' })).toHaveCount(0);
   for (const path of VENUE_PAGES) {
     await page.goto(path);
-    await expect(page, path).toHaveURL(/\/staff\/drivers/);
+    await expect(page, path).toHaveURL(/\/staff\/drivers$/);
+    await expect(page.getByRole('status').filter({ hasText: 'That page is for venue owners' })).toBeVisible();
   }
 });
 

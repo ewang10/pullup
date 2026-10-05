@@ -7,7 +7,9 @@
  */
 
 import { redirect } from 'next/navigation';
+import { Suspense } from 'react';
 import Sidebar from '@/components/Sidebar';
+import AccessNotice from '@/components/AccessNotice';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { fetchRole } from '@/lib/roles';
 
@@ -30,6 +32,9 @@ export default async function DashboardLayout({
       <Sidebar />
       <main id="main-content" role="main" className="flex-1 bg-gray-50">
         <div className="p-8">
+          <Suspense fallback={null}>
+            <AccessNotice />
+          </Suspense>
           {children}
         </div>
       </main>

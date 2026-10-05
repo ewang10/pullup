@@ -4,7 +4,9 @@
  */
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
+import { Suspense } from 'react';
 import StaffNav from '@/components/StaffNav';
+import AccessNotice from '@/components/AccessNotice';
 import { createSupabaseServerClient } from '@/lib/supabase-server';
 import { fetchRole, isStaffRole } from '@/lib/roles';
 
@@ -27,6 +29,9 @@ export default async function StaffLayout({ children }: { children: React.ReactN
     <div className="min-h-screen bg-gray-50">
       <StaffNav name={user.user_metadata?.full_name || user.email || 'Staff'} isAdmin={role === 'platform_admin'} />
       <main id="main-content" className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
+        <Suspense fallback={null}>
+          <AccessNotice />
+        </Suspense>
         {children}
       </main>
     </div>

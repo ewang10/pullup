@@ -1,12 +1,13 @@
 /**
  * Next.js middleware for route protection and access control.
  *
- * Protects all dashboard-related routes (`/dashboard`, `/deals`, `/analytics`,
- * `/billing`, `/qr-code`, `/settings`) by requiring an authenticated user with
- * the `venue_admin` role. Unauthenticated users are redirected to `/login`.
- * Authenticated users without the `venue_admin` role are redirected to
- * `/login?error=unauthorized`. Authenticated users visiting `/login` or
- * `/signup` are redirected to `/dashboard`.
+ * Venue pages (`/dashboard`, `/deals`, `/analytics`, `/billing`, `/qr-code`,
+ * `/settings`) need the `venue_admin` role; `/staff` needs a staff role and
+ * `/staff/team` an admin. Signed-out visitors go to `/login`. Signed-in users
+ * who open another role's page go to their own home with `?denied=<area>`,
+ * which AccessNotice explains. Riders and drivers (no web home) go to
+ * `/login?error=unauthorized`. Signed-in users visiting `/login` or `/signup`
+ * go to their home.
  */
 
 import { createServerClient } from '@supabase/ssr';
@@ -31,6 +32,18 @@ function isProtectedRoute(pathname: string): boolean {
   return PROTECTED_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
   );
+}
+
+/**
+ * Sends a signed-in user who opened another role's page to their own home,
+ * with ?denied=<area> so the page can explain why (see AccessNotice).
+ */
+function deniedRedirect(request: NextRequest, home: string, area: 'staff' | 'venue' | 'admin') {
+  const url = request.nextUrl.clone();
+  url.pathname = home;
+  url.search = '';
+  url.searchParams.set('denied', area);
+  return NextResponse.redirect(url);
 }
 
 export async function middleware(request: NextRequest) {
@@ -79,9 +92,11 @@ export async function middleware(request: NextRequest) {
     // The team page is for admins only.
     const adminOnly = pathname === '/staff/team' || pathname.startsWith('/staff/team/');
     if (isStaffRole(role) && adminOnly && role !== 'platform_admin') {
-      const url = request.nextUrl.clone();
-      url.pathname = '/staff/drivers';
-      return NextResponse.redirect(url);
+      return deniedRedirect(request, '/staff/drivers', 'admin');
+    }
+    const home = homeForRole(role);
+    if (!isStaffRole(role) && home) {
+      return deniedRedirect(request, home, 'staff');
     }
     if (!isStaffRole(role)) {
       const url = request.nextUrl.clone();
@@ -101,6 +116,10 @@ export async function middleware(request: NextRequest) {
     }
 
     // Signed in but not a venue admin — redirect with error flag
+    const home = homeForRole(role);
+    if (role !== 'venue_admin' && home) {
+      return deniedRedirect(request, home, 'venue');
+    }
     if (role !== 'venue_admin') {
       const url = request.nextUrl.clone();
       url.pathname = '/login';
