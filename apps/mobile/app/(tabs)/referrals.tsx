@@ -70,7 +70,7 @@ export default function DriverCodeScreen() {
         ) : (
           <ActivityIndicator color="#FFFFFF" accessibilityLabel="Loading your code" />
         )}
-        <Text style={styles.codeValue} accessibilityLabel={code ? `Code ${code.split("").join(" ")}` : undefined}>
+        <Text style={styles.codeValue} numberOfLines={1} adjustsFontSizeToFit maxFontSizeMultiplier={1.6} accessibilityLabel={code ? `Code ${code.split("").join(" ")}` : undefined}>
           {code ?? "--------"}
         </Text>
         <Text style={styles.codeHint}>

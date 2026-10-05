@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useAppStore } from "../../lib/store";
 import { fetchMyClaims } from "../../lib/api";
 import type { DealClaimWithDeal } from "@pullup/shared";
@@ -122,9 +122,12 @@ export default function ClaimsScreen() {
     setInitialLoaded(true);
   }, []);
 
-  useEffect(() => {
-    loadClaims();
-  }, []);
+  // Reload whenever the tab is shown, so a claim made elsewhere appears.
+  useFocusEffect(
+    useCallback(() => {
+      loadClaims();
+    }, [loadClaims])
+  );
 
   const activeClaims = claims.filter((c) => c.status === "reserved");
   const pastClaims = claims.filter((c) => c.status !== "reserved");

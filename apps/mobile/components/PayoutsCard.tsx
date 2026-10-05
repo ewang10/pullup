@@ -76,7 +76,7 @@ export function PayoutsCard({
   return (
     <View style={styles.card}>
       <Text style={styles.label}>{kind === "driver" ? "Available to cash out" : "Ride credit balance"}</Text>
-      <Text style={styles.balance} accessibilityLabel={`${money(account.balance)} available`}>
+      <Text style={styles.balance} numberOfLines={1} adjustsFontSizeToFit maxFontSizeMultiplier={1.6} accessibilityLabel={`${money(account.balance)} available`}>
         {money(account.balance)}
       </Text>
 

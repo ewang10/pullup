@@ -2,8 +2,9 @@
  * Rider wallet: ride credit earned on approved visits, payout setup and cash
  * out to a bank account through Stripe.
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { View, Text, StyleSheet, ScrollView, RefreshControl, ActivityIndicator } from "react-native";
+import { useFocusEffect } from "expo-router";
 import { useAuth } from "../../lib/auth";
 import { fetchRiderWallet, type PayoutAccount } from "../../lib/api";
 import { PayoutHistory, PayoutsCard } from "../../components/PayoutsCard";
@@ -25,9 +26,12 @@ export default function WalletScreen() {
     setLoading(false);
   }, [userId]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  // Reload whenever the tab is shown, so newly approved credit appears.
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load])
+  );
 
   if (loading && !wallet) {
     return (

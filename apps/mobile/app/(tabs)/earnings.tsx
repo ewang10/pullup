@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
+import { useFocusEffect } from "expo-router";
 import { useAppStore } from "../../lib/store";
 import { useAuth } from "../../lib/auth";
 import { fetchDriverPayouts, fetchDriverStats, type PayoutAccount } from "../../lib/api";
@@ -23,7 +24,7 @@ function StatCard({
 }) {
   return (
     <View style={styles.statCard}>
-      <Text style={[styles.statValue, { color }]}>{value}</Text>
+      <Text style={[styles.statValue, { color }]} numberOfLines={1} adjustsFontSizeToFit maxFontSizeMultiplier={1.6}>{value}</Text>
       <Text style={styles.statLabel}>{label}</Text>
     </View>
   );
@@ -53,9 +54,12 @@ export default function EarningsScreen() {
     setLoading(false);
   }, [userId]);
 
-  useEffect(() => {
-    loadStats();
-  }, [loadStats]);
+  // Reload whenever the tab is shown, so new bonuses appear.
+  useFocusEffect(
+    useCallback(() => {
+      loadStats();
+    }, [loadStats])
+  );
 
   if (loading && !driverStats) {
     return (
@@ -93,7 +97,7 @@ export default function EarningsScreen() {
 
       <View style={styles.earningsHero} accessible accessibilityLabel={`Total earned ${stats.total_earnings.toFixed(2)} dollars`}>
         <Text style={styles.heroLabel}>Total earned</Text>
-        <Text style={styles.heroValue}>
+        <Text style={styles.heroValue} numberOfLines={1} adjustsFontSizeToFit maxFontSizeMultiplier={1.6}>
           ${stats.total_earnings.toFixed(2)}
         </Text>
       </View>

@@ -366,7 +366,8 @@ export default function ClaimDetailScreen() {
     const pickerResult = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
       quality: 0.8,
-      allowsEditing: true,
+      // No crop step: it forced a fixed frame that cut off long receipts.
+      allowsEditing: false,
     });
 
     if (pickerResult.canceled || pickerResult.assets.length === 0) return;
@@ -568,7 +569,8 @@ export default function ClaimDetailScreen() {
                     style={styles.driverInput}
                     value={driverCode}
                     onChangeText={(t) => {
-                      setDriverCode(t.toUpperCase());
+                      // Uppercased on submit: transforming here drops keystrokes on iOS.
+                      setDriverCode(t);
                       setDriverError(null);
                     }}
                     placeholder="e.g. 86YS23YR"
@@ -576,6 +578,7 @@ export default function ClaimDetailScreen() {
                     autoCapitalize="characters"
                     autoCorrect={false}
                     maxLength={12}
+                    clearButtonMode="while-editing"
                     editable={!linkingDriver}
                     accessibilityLabel="Driver code"
                     returnKeyType="done"
@@ -618,7 +621,7 @@ export default function ClaimDetailScreen() {
                 style={styles.driverInput}
                 value={venueCode}
                 onChangeText={(t) => {
-                  setVenueCode(t.toUpperCase());
+                  setVenueCode(t);
                   setCheckinError(null);
                 }}
                 placeholder="e.g. CAFE42"
@@ -626,6 +629,7 @@ export default function ClaimDetailScreen() {
                 autoCapitalize="characters"
                 autoCorrect={false}
                 maxLength={8}
+                clearButtonMode="while-editing"
                 editable={!checkingIn}
                 accessibilityLabel="Venue check-in code"
                 returnKeyType="done"
@@ -663,7 +667,7 @@ export default function ClaimDetailScreen() {
                 ? `This visit closed on ${new Date(claim.unverified_at).toLocaleDateString([], { month: "short", day: "numeric" })} because the receipts weren't approved in time, so no ride credit was added.`
                 : allReceiptsApproved
                 ? "All receipts approved. Your ride credit has been added."
-                : `Upload ${requiredReceipts.length === 1 ? "this receipt" : "these receipts"} to get your ${claim.deal.ride_credit_amount} ride credit. We release it once ${requiredReceipts.length === 1 ? "it's" : "they're"} approved.`}
+                : `Upload ${requiredReceipts.length === 1 ? "this receipt" : "these receipts"} to get your $${Number(claim.deal.ride_credit_amount).toFixed(2)} ride credit. We release it once ${requiredReceipts.length === 1 ? "it's" : "they're"} approved.`}
             </Text>
             {!claim.unverified_at && !allReceiptsApproved && (
               <Text style={styles.receiptDeadline}>

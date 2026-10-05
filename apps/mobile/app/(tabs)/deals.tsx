@@ -5,7 +5,7 @@
  * renders them in a scrollable, pull-to-refresh FlatList. Each card shows the
  * discount badge, venue info, distance, and remaining slot count.
  */
-import { useEffect, useCallback } from "react";
+import { useCallback } from "react";
 import {
   View,
   Text,
@@ -15,7 +15,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useAppStore } from "../../lib/store";
 import type { DealWithSlots } from "@pullup/shared";
 import { fetchDemoDeals, fetchNearbyDeals } from "../../lib/api";
@@ -128,11 +128,12 @@ export default function DealsListScreen() {
     setDealsLoading(false);
   }, [location]);
 
-  useEffect(() => {
-    if (deals.length === 0) {
+  // Reload whenever the tab is shown, so slots left stay current.
+  useFocusEffect(
+    useCallback(() => {
       loadDeals();
-    }
-  }, []);
+    }, [loadDeals])
+  );
 
   const renderEmpty = () => {
     if (dealsLoading) return null;

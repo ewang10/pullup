@@ -60,6 +60,9 @@ export default function TabsLayout() {
       screenOptions={{
         headerStyle: { backgroundColor: "#FFFFFF" },
         headerTitleStyle: { color: "#1A1A2E", fontWeight: "600" },
+        // Fixed-height header: titles at large text sizes were cut off. Native
+        // iOS navigation titles don't scale either.
+        headerTitleAllowFontScaling: false,
         tabBarStyle: styles.tabBar,
         tabBarActiveTintColor: "#5B53EE",
         tabBarInactiveTintColor: "#6B7280",
