@@ -14,6 +14,7 @@ test('create, edit, pause and delete a deal', async ({ page }) => {
   const title = uniqueName('E2E deal ');
   await page.goto('/deals/new');
   await page.getByLabel('Deal title').fill(title);
+  await page.getByLabel('Description', { exact: true }).fill('Created by an automated test.');
   await page.getByLabel('Discount value').fill('15');
   await page.getByLabel('What you pay per completed visit ($)').fill('12');
   await page.getByRole('checkbox', { name: /Ride receipt/ }).check();

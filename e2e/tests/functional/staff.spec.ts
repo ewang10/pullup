@@ -17,8 +17,9 @@ test('support staff approve and reject driver applications', async ({ page }) =>
   const tanya = driverCard(page, 'Tanya Brooks');
   await tanya.getByRole('button', { name: 'Reject…' }).click();
   await tanya.getByRole('button', { name: 'Reject driver' }).click();
-  await expect(page.getByText('Add a reason. The driver will see it in the app.')).toBeVisible();
-  await expect(tanya.getByLabel('Reason shown to the driver')).toBeFocused();
+  // The error is focused so screen readers announce it, and the earlier success message is cleared.
+  await expect(page.getByText('Add a reason. The driver will see it in the app.')).toBeFocused();
+  await expect(page.getByText('Carlos Mendoza approved.')).toHaveCount(0);
   await tanya.getByLabel('Reason shown to the driver').fill('Driver ID does not match the photo.');
   await tanya.getByRole('button', { name: 'Reject driver' }).click();
   await expect(page.getByText('Tanya Brooks rejected.')).toBeVisible();

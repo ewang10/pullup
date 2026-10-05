@@ -1,7 +1,8 @@
 /**
  * Success/error message after an action. Focus moves to the message so
  * keyboard and screen-reader users aren't left on an element that just
- * disappeared (e.g. an approved item removed from a list).
+ * disappeared (e.g. an approved item removed from a list). An error hides any
+ * earlier success message, so the two never show together.
  */
 'use client';
 
@@ -21,7 +22,7 @@ export default function StatusMessage({ notice, error }: { notice?: string | nul
   return (
     <>
       <div aria-live="polite">
-        {notice && (
+        {notice && !error && (
           <p
             ref={noticeRef}
             tabIndex={-1}
