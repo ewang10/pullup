@@ -41,7 +41,7 @@ function RootLayoutNav() {
           name="deal/[id]"
           options={{
             headerShown: true,
-            headerTitle: "Deal Details",
+            headerTitle: "Deal details",
             headerTintColor: "#5B53EE",
             headerStyle: { backgroundColor: "#FFFFFF" },
           }}
@@ -50,7 +50,7 @@ function RootLayoutNav() {
           name="claim/[id]"
           options={{
             headerShown: true,
-            headerTitle: "Active Claim",
+            headerTitle: "Your claim",
             headerTintColor: "#5B53EE",
             headerStyle: { backgroundColor: "#FFFFFF" },
           }}
@@ -60,7 +60,7 @@ function RootLayoutNav() {
           name="scan"
           options={{
             headerShown: true,
-            headerTitle: "Scan QR Code",
+            headerTitle: "Scan QR code",
             headerTintColor: "#FFFFFF",
             headerStyle: { backgroundColor: "#000000" },
             presentation: "fullScreenModal",

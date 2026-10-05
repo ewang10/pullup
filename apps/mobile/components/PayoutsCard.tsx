@@ -115,7 +115,12 @@ export function PayoutsCard({
   );
 }
 
+const HISTORY_PREVIEW = 5;
+
 export function PayoutHistory({ account, emptyText }: { account: PayoutAccount; emptyText: string }) {
+  const [showAll, setShowAll] = useState(false);
+  const total = Math.min(account.history.length, 30);
+  const rows = account.history.slice(0, showAll ? 30 : HISTORY_PREVIEW);
   return (
     <View style={styles.historyCard}>
       <Text style={styles.historyTitle} accessibilityRole="header">
@@ -124,7 +129,7 @@ export function PayoutHistory({ account, emptyText }: { account: PayoutAccount; 
       {account.history.length === 0 ? (
         <Text style={styles.help}>{emptyText}</Text>
       ) : (
-        account.history.slice(0, 30).map((h) => {
+        rows.map((h) => {
           const date = new Date(h.at).toLocaleDateString([], { month: "short", day: "numeric" });
           const sign = h.kind === "cashout" ? "−" : "+";
           return (
@@ -132,7 +137,7 @@ export function PayoutHistory({ account, emptyText }: { account: PayoutAccount; 
               key={`${h.kind}-${h.id}`}
               style={styles.row}
               accessible
-              accessibilityLabel={`${h.label}, ${h.kind === "cashout" ? "minus" : "plus"} ${money(h.amount)}, ${h.status}, ${date}`}
+              accessibilityLabel={`${h.label}, ${h.kind === "cashout" ? "minus" : "plus"} ${money(h.amount)}${h.pending ? ", pending" : ""}, ${h.status}, ${date}`}
             >
               <View style={styles.rowText}>
                 <Text style={styles.rowLabel}>{h.label}</Text>
@@ -140,13 +145,23 @@ export function PayoutHistory({ account, emptyText }: { account: PayoutAccount; 
                   {date} · {h.status}
                 </Text>
               </View>
-              <Text style={[styles.rowAmount, h.kind === "cashout" ? styles.rowOut : styles.rowIn]}>
+              <Text style={[styles.rowAmount, h.pending ? styles.rowPending : h.kind === "cashout" ? styles.rowOut : styles.rowIn]}>
                 {sign}
                 {money(h.amount)}
               </Text>
             </View>
           );
         })
+      )}
+      {total > HISTORY_PREVIEW && (
+        <Pressable
+          onPress={() => setShowAll((v) => !v)}
+          style={styles.linkButton}
+          accessibilityRole="button"
+          accessibilityState={{ expanded: showAll }}
+        >
+          <Text style={styles.linkText}>{showAll ? "Show less" : `Show all ${total}`}</Text>
+        </Pressable>
       )}
     </View>
   );
@@ -178,14 +193,14 @@ function PrimaryButton({
 }
 
 const styles = StyleSheet.create({
-  card: { backgroundColor: "#FFFFFF", borderRadius: 16, padding: 20, gap: 8 },
+  card: { backgroundColor: "#FFFFFF", borderRadius: 16, padding: 20, gap: 6 },
   label: { fontSize: 14, fontWeight: "600", color: "#4B5563" },
-  balance: { fontSize: 36, fontWeight: "800", color: "#1A1A2E" },
+  balance: { fontSize: 34, fontWeight: "800", color: "#1A1A2E" },
   help: { fontSize: 14, lineHeight: 20, color: "#374151" },
   holdText: { fontSize: 14, lineHeight: 20, color: "#991B1B" },
   button: {
     marginTop: 8,
-    minHeight: 50,
+    minHeight: 46,
     borderRadius: 12,
     backgroundColor: "#5B53EE",
     alignItems: "center",
@@ -193,7 +208,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   buttonDisabled: { backgroundColor: "#6B7280" },
-  buttonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
+  buttonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600", textAlign: "center" },
   linkButton: { alignSelf: "center", minHeight: 44, justifyContent: "center", paddingHorizontal: 12 },
   linkText: { color: "#5B53EE", fontSize: 15, fontWeight: "600" },
   historyCard: { backgroundColor: "#FFFFFF", borderRadius: 16, padding: 20, gap: 4 },
@@ -212,4 +227,5 @@ const styles = StyleSheet.create({
   rowAmount: { fontSize: 16, fontWeight: "700" },
   rowIn: { color: "#047857" },
   rowOut: { color: "#1A1A2E" },
+  rowPending: { color: "#6B7280", fontWeight: "600" },
 });

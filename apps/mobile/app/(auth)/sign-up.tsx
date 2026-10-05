@@ -19,6 +19,7 @@ import {
   Platform,
   ScrollView,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter, Link } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth, type UserRole } from "../../lib/auth";
@@ -111,7 +112,7 @@ export default function SignUpScreen() {
 
           <Text style={styles.title}>Create account</Text>
           <Text style={styles.subtitle}>
-            Join PullUp and start saving
+            Get ride credit for local deals, or earn bonuses as a driver.
           </Text>
 
           {error && (
@@ -126,12 +127,12 @@ export default function SignUpScreen() {
 
           <View style={styles.form}>
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Full Name</Text>
+              <Text style={styles.label}>Full name</Text>
               <TextInput
                 style={styles.input}
                 value={fullName}
                 onChangeText={setFullName}
-                placeholder="John Doe"
+                placeholder="e.g. Alex Kim"
                 placeholderTextColor="#6B7280"
                 autoCapitalize="words"
                 editable={!loading}
@@ -185,7 +186,7 @@ export default function SignUpScreen() {
                   accessibilityRole="button"
                   accessibilityState={{ selected: role === "rider" }}
                 >
-                  <Text style={styles.roleIcon} maxFontSizeMultiplier={1.4}>🏍</Text>
+                  <Ionicons name="person-outline" size={24} color={role === "rider" ? "#5B53EE" : "#4B5563"} accessible={false} />
                   <Text
                     style={[
                       styles.roleText,
@@ -206,7 +207,7 @@ export default function SignUpScreen() {
                   accessibilityRole="button"
                   accessibilityState={{ selected: role === "driver" }}
                 >
-                  <Text style={styles.roleIcon} maxFontSizeMultiplier={1.4}>🚗</Text>
+                  <Ionicons name="car-outline" size={24} color={role === "driver" ? "#5B53EE" : "#4B5563"} accessible={false} />
                   <Text
                     style={[
                       styles.roleText,
@@ -289,7 +290,7 @@ export default function SignUpScreen() {
               {loading ? (
                 <ActivityIndicator color="#FFFFFF" accessibilityLabel="Loading" />
               ) : (
-                <Text style={styles.buttonText}>Create Account</Text>
+                <Text style={styles.buttonText}>Create account</Text>
               )}
             </Pressable>
 
@@ -300,7 +301,7 @@ export default function SignUpScreen() {
                   accessibilityLabel="Sign in"
                   accessibilityRole="button"
                 >
-                  <Text style={styles.footerLink}>Sign In</Text>
+                  <Text style={styles.footerLink}>Sign in</Text>
                 </Pressable>
               </Link>
             </View>
@@ -435,9 +436,6 @@ const styles = StyleSheet.create({
   roleOptionActive: {
     borderColor: "#5B53EE",
     backgroundColor: "#F0EFFF",
-  },
-  roleIcon: {
-    fontSize: 24,
   },
   roleText: {
     fontSize: 15,

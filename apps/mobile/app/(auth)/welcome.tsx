@@ -2,7 +2,7 @@
  * Welcome screen for the PullUp app.
  *
  * Displays the brand hero section with the PullUp logo, tagline, and
- * subtitle, followed by primary "Sign In" and secondary "Create Account"
+ * subtitle, followed by primary "Sign in" and secondary "Create account"
  * buttons. All interactive and heading elements carry accessibility
  * roles and labels for screen-reader support.
  */
@@ -26,8 +26,8 @@ export default function WelcomeScreen() {
           Exclusive deals.{"\n"}Right around the corner.
         </Text>
         <Text style={styles.subtitle}>
-          Discover local venue deals, claim discounts, and earn rewards by
-          referring riders.
+          Claim deals at local venues and get ride credit for the trip there.
+          Driving for Uber or Lyft? Earn a bonus when your passengers use PullUp.
         </Text>
       </View>
 
@@ -38,7 +38,7 @@ export default function WelcomeScreen() {
           accessibilityLabel="Sign in to your account"
           accessibilityRole="button"
         >
-          <Text style={styles.primaryButtonText}>Sign In</Text>
+          <Text style={styles.primaryButtonText}>Sign in</Text>
         </Pressable>
 
         <Pressable
@@ -47,7 +47,7 @@ export default function WelcomeScreen() {
           accessibilityLabel="Create a new account"
           accessibilityRole="button"
         >
-          <Text style={styles.secondaryButtonText}>Create Account</Text>
+          <Text style={styles.secondaryButtonText}>Create account</Text>
         </Pressable>
       </View>
     </SafeAreaView>

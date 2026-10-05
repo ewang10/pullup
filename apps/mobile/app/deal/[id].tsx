@@ -4,6 +4,9 @@
  * Displays a single deal with its venue location on a map, discount info,
  * a ride-credit callout, and a "Claim" button. The deal is fetched via
  * `fetchDealDetail` which returns a `DealWithVenue` (no slot or expiry data).
+ *
+ * Only riders claim deals (claim-deal enforces this too). Drivers see deals
+ * so they can suggest them to passengers, with a note instead of the button.
  */
 import { useEffect, useState } from "react";
 import {
@@ -19,6 +22,7 @@ import {
 import { useLocalSearchParams, useRouter } from "expo-router";
 import MapView, { Marker } from "react-native-maps";
 import { fetchDealDetail, claimDeal } from "../../lib/api";
+import { useAuth } from "../../lib/auth";
 import type { DealWithVenue } from "@pullup/shared";
 
 /** Format a deal's discount as a human-readable badge string. */
@@ -29,9 +33,20 @@ function formatDiscount(deal: DealWithVenue): string {
   return `$${deal.discount_value} OFF`;
 }
 
+/** "2 hours", "90 minutes", "1 hour 30 minutes". */
+function formatDuration(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  const hours = h ? `${h} hour${h === 1 ? "" : "s"}` : "";
+  const mins = m ? `${m} minute${m === 1 ? "" : "s"}` : "";
+  return [hours, mins].filter(Boolean).join(" ") || "0 minutes";
+}
+
 export default function DealDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { role } = useAuth();
+  const isRider = role === "rider";
 
   const [deal, setDeal] = useState<DealWithVenue | null>(null);
   const [loading, setLoading] = useState(true);
@@ -60,8 +75,8 @@ export default function DealDetailScreen() {
     if (!deal) return;
 
     Alert.alert(
-      "Claim This Deal",
-      `Claim "${deal.title}" at ${deal.venue.name}? You'll have a limited time to visit and redeem.`,
+      "Claim this deal",
+      `Claim "${deal.title}" at ${deal.venue.name}? You'll have ${formatDuration(deal.hold_duration_minutes)} to get there and check in.`,
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -74,9 +89,9 @@ export default function DealDetailScreen() {
             if (err) {
               Alert.alert("Error", err);
             } else if (data) {
-              Alert.alert("Deal Claimed!", "Head to the venue to redeem.", [
+              Alert.alert("Deal claimed", "Head to the venue to redeem.", [
                 {
-                  text: "View Claim",
+                  text: "View claim",
                   onPress: () => router.replace(`/claim/${data.id}`),
                 },
               ]);
@@ -119,7 +134,7 @@ export default function DealDetailScreen() {
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={[styles.scrollContent, !isRider && styles.scrollContentNoBar]}>
         {deal.venue.image_url && (
           <Image
             source={{ uri: deal.venue.image_url }}
@@ -161,7 +176,10 @@ export default function DealDetailScreen() {
 
           <View style={styles.venueSection}>
             <Text style={styles.venueName}>{deal.venue.name}</Text>
-            <Text style={styles.venueAddress}>{deal.venue.address}</Text>
+            <Text style={styles.venueAddress}>
+              {deal.venue.address}
+              {deal.venue.city ? `, ${deal.venue.city}` : ""}
+            </Text>
           </View>
 
           <Text style={styles.description}>{deal.description}</Text>
@@ -169,7 +187,7 @@ export default function DealDetailScreen() {
           {deal.ride_credit_amount > 0 && (
             <View style={styles.rideCreditCallout}>
               <Text style={styles.rideCreditText}>
-                Get ${deal.ride_credit_amount} ride credit!
+                Get ${Number(deal.ride_credit_amount).toFixed(2)} in ride credit
               </Text>
               {(deal.requires_ride_receipt || deal.requires_venue_receipt) && (
                 <Text style={styles.receiptNote}>
@@ -185,19 +203,31 @@ export default function DealDetailScreen() {
 
           <View style={styles.detailsGrid}>
             <View style={styles.detailItem}>
-              <Text style={styles.detailLabel}>Daily Cap</Text>
+              <Text style={styles.detailLabel}>Spots per day</Text>
               <Text style={styles.detailValue}>{deal.daily_cap}</Text>
             </View>
             <View style={styles.detailItem}>
-              <Text style={styles.detailLabel}>Hold Time</Text>
-              <Text style={styles.detailValue}>
-                {deal.hold_duration_minutes} min
-              </Text>
+              <Text style={styles.detailLabel}>Time to get there</Text>
+              <Text style={styles.detailValue}>{formatDuration(deal.hold_duration_minutes)}</Text>
             </View>
           </View>
+
+          {!isRider && (
+            <View style={styles.driverNote}>
+              <Text style={styles.driverNoteTitle} accessibilityRole="header">
+                Riders claim deals
+              </Text>
+              <Text style={styles.driverNoteText}>
+                {role === "driver"
+                  ? `Tell your passengers about this deal. When they claim it and add your driver code, you earn $${Number(deal.driver_kickback_amount).toFixed(2)} once the visit is complete.`
+                  : "Sign in with a rider account to claim deals."}
+              </Text>
+            </View>
+          )}
         </View>
       </ScrollView>
 
+      {isRider && (
       <View style={styles.bottomBar}>
         <Pressable
           style={[
@@ -215,10 +245,11 @@ export default function DealDetailScreen() {
               accessibilityLabel="Claiming in progress"
             />
           ) : (
-            <Text style={styles.claimButtonText}>Claim This Deal</Text>
+            <Text style={styles.claimButtonText}>Claim this deal</Text>
           )}
         </Pressable>
       </View>
+      )}
     </View>
   );
 }
@@ -234,7 +265,27 @@ const styles = StyleSheet.create({
     backgroundColor: "#F8F9FA",
   },
   scrollContent: {
-    paddingBottom: 100,
+    paddingBottom: 120,
+  },
+  scrollContentNoBar: {
+    paddingBottom: 32,
+  },
+  driverNote: {
+    marginTop: 20,
+    backgroundColor: "#F0EFFF",
+    borderRadius: 12,
+    padding: 16,
+  },
+  driverNoteTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#1A1A2E",
+    marginBottom: 4,
+  },
+  driverNoteText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#374151",
   },
   centered: {
     flex: 1,

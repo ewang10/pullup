@@ -1,18 +1,20 @@
 /**
  * Deals map screen (home tab).
  *
- * Renders a full-screen map centered on the user's location with markers for
- * each nearby deal (`DealWithSlots`). Tapping a marker's callout navigates to
- * the deal detail screen.
+ * Renders a full-screen map centered on the user's location with one marker
+ * per venue (a venue can have several deals at the same spot). Tapping a
+ * marker opens a panel listing that venue's deals; each opens the deal page.
  */
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import {
   View,
   Text,
   StyleSheet,
   ActivityIndicator,
   Pressable,
+  ScrollView,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import MapView, { Marker, Region } from "react-native-maps";
 import { useRouter } from "expo-router";
 import { useAppStore } from "../../lib/store";
@@ -51,6 +53,19 @@ export default function DealsMapScreen() {
 
   const [region, setRegion] = useState<Region>(DEFAULT_REGION);
   const [initialLoaded, setInitialLoaded] = useState(false);
+  const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null);
+
+  // One entry per venue, with its deals.
+  const venues = useMemo(() => {
+    const byVenue = new Map<string, { venue: DealWithSlots["venue"]; deals: DealWithSlots[] }>();
+    for (const d of deals) {
+      const entry = byVenue.get(d.venue.id) ?? { venue: d.venue, deals: [] };
+      entry.deals.push(d);
+      byVenue.set(d.venue.id, entry);
+    }
+    return [...byVenue.values()];
+  }, [deals]);
+  const selected = venues.find((v) => v.venue.id === selectedVenueId) ?? null;
 
   useEffect(() => {
     loadLocationAndDeals();
@@ -140,20 +155,57 @@ export default function DealsMapScreen() {
         showsUserLocation
         showsMyLocationButton
       >
-        {deals.map((deal) => (
+        {venues.map(({ venue, deals: venueDeals }) => (
           <Marker
-            key={deal.id}
-            coordinate={{
-              latitude: deal.venue.latitude,
-              longitude: deal.venue.longitude,
-            }}
-            title={deal.venue.name}
-            description={`${formatDiscount(deal)} - ${deal.slots_remaining} slots left`}
-            onCalloutPress={() => handleMarkerPress(deal)}
+            key={venue.id}
+            coordinate={{ latitude: venue.latitude, longitude: venue.longitude }}
+            onPress={() => setSelectedVenueId(venue.id)}
             pinColor="#5B53EE"
+            accessibilityLabel={`${venue.name}, ${venueDeals.length} deal${venueDeals.length === 1 ? "" : "s"}`}
           />
         ))}
       </MapView>
+
+      {selected && (
+        <View style={styles.venuePanel} accessibilityViewIsModal={false}>
+          <View style={styles.venuePanelHeader}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.venuePanelTitle} accessibilityRole="header">
+                {selected.venue.name}
+              </Text>
+              <Text style={styles.venuePanelAddress}>{selected.venue.address}</Text>
+            </View>
+            <Pressable
+              onPress={() => setSelectedVenueId(null)}
+              style={styles.venuePanelClose}
+              accessibilityRole="button"
+              accessibilityLabel="Close"
+              hitSlop={8}
+            >
+              <Ionicons name="close" size={22} color="#4B5563" />
+            </Pressable>
+          </View>
+          <ScrollView style={styles.venuePanelList}>
+            {selected.deals.map((deal) => (
+              <Pressable
+                key={deal.id}
+                onPress={() => handleMarkerPress(deal)}
+                style={styles.venueDealRow}
+                accessibilityRole="button"
+                accessibilityLabel={`${deal.title}, ${formatDiscount(deal)}, ${deal.slots_remaining} spots left today`}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.venueDealTitle}>{deal.title}</Text>
+                  <Text style={styles.venueDealMeta}>
+                    {formatDiscount(deal)} · {deal.slots_remaining} spots left today
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      )}
 
       {dealsError && (
         <View style={styles.errorBanner}>
@@ -187,12 +239,14 @@ export default function DealsMapScreen() {
         </View>
       )}
 
+      {!selected && (
       <View style={styles.dealCount}>
         <Text style={styles.dealCountText}>
           {deals.length} {showingDemo ? "demo " : ""}deal{deals.length !== 1 ? "s" : ""}
           {showingDemo ? "" : " nearby"}
         </Text>
       </View>
+      )}
     </View>
   );
 }
@@ -213,7 +267,9 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 16,
-    color: "#6B7280",
+    color: "#4B5563",
+    textAlign: "center",
+    paddingHorizontal: 24,
   },
   demoBanner: {
     position: "absolute",
@@ -295,6 +351,70 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 6,
     elevation: 4,
+  },
+  venuePanel: {
+    position: "absolute",
+    left: 12,
+    right: 12,
+    bottom: 12,
+    maxHeight: "55%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  venuePanelHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    gap: 8,
+  },
+  venuePanelTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#1A1A2E",
+  },
+  venuePanelAddress: {
+    fontSize: 14,
+    color: "#4B5563",
+    marginTop: 2,
+  },
+  venuePanelClose: {
+    width: 44,
+    height: 44,
+    marginTop: -10,
+    marginRight: -10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  venuePanelList: {
+    flexGrow: 0,
+  },
+  venueDealRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    minHeight: 56,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "#E5E7EB",
+  },
+  venueDealTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#1A1A2E",
+  },
+  venueDealMeta: {
+    fontSize: 13,
+    color: "#4B5563",
+    marginTop: 2,
   },
   dealCountText: {
     fontSize: 14,

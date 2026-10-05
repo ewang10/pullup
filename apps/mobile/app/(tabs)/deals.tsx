@@ -15,6 +15,7 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useAppStore } from "../../lib/store";
 import type { DealWithSlots } from "@pullup/shared";
@@ -37,7 +38,9 @@ function DealCard({ deal, onPress }: { deal: DealWithSlots; onPress: () => void 
     <Pressable
       style={styles.card}
       onPress={onPress}
-      accessibilityLabel={`${deal.title} at ${deal.venue.name}, ${discountLabel}`}
+      accessibilityLabel={`${deal.title} at ${deal.venue.name}, ${discountLabel}${
+        Number(deal.ride_credit_amount) > 0 ? `, plus $${Number(deal.ride_credit_amount).toFixed(2)} ride credit` : ""
+      }, ${deal.slots_remaining} spots left today`}
       accessibilityRole="button"
     >
       <View style={styles.cardHeader}>
@@ -49,7 +52,7 @@ function DealCard({ deal, onPress }: { deal: DealWithSlots; onPress: () => void 
         ) : (
           deal.distance_miles !== undefined && (
             <Text style={styles.distanceText}>
-              {deal.distance_miles.toFixed(1)} mi
+              {deal.distance_miles < 0.1 ? "< 0.1" : deal.distance_miles.toFixed(1)} mi
             </Text>
           )
         )}
@@ -60,6 +63,9 @@ function DealCard({ deal, onPress }: { deal: DealWithSlots; onPress: () => void 
       <Text style={styles.venueAddress} numberOfLines={1}>
         {deal.venue.address}
       </Text>
+      {Number(deal.ride_credit_amount) > 0 && (
+        <Text style={styles.creditText}>+ ${Number(deal.ride_credit_amount).toFixed(2)} ride credit</Text>
+      )}
 
       <View style={styles.cardFooter}>
         <View style={styles.slotsContainer}>
@@ -69,11 +75,10 @@ function DealCard({ deal, onPress }: { deal: DealWithSlots; onPress: () => void 
           <Text
             style={[styles.slotsText, slotsLow && styles.slotsTextWarning]}
           >
-            {deal.slots_remaining} slot{deal.slots_remaining !== 1 ? "s" : ""}{" "}
-            left
+            {deal.slots_remaining} spot{deal.slots_remaining !== 1 ? "s" : ""} left today
           </Text>
         </View>
-        <Text style={styles.viewText}>View Deal</Text>
+        <Text style={styles.viewText}>View deal</Text>
       </View>
     </Pressable>
   );
@@ -128,7 +133,7 @@ export default function DealsListScreen() {
     setDealsLoading(false);
   }, [location]);
 
-  // Reload whenever the tab is shown, so slots left stay current.
+  // Reload whenever the tab is shown, so spots left stay current.
   useFocusEffect(
     useCallback(() => {
       loadDeals();
@@ -140,7 +145,7 @@ export default function DealsListScreen() {
 
     return (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyIcon}>🏷</Text>
+        <Ionicons name="pricetag-outline" size={44} color="#9CA3AF" style={styles.emptyIcon} accessible={false} />
         <Text style={styles.emptyTitle}>No deals nearby</Text>
         <Text style={styles.emptySubtitle}>
           Check back later or expand your search radius.
@@ -202,6 +207,12 @@ export default function DealsListScreen() {
 }
 
 const styles = StyleSheet.create({
+  creditText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#047857",
+    marginTop: 6,
+  },
   container: {
     flex: 1,
     backgroundColor: "#F8F9FA",
@@ -340,7 +351,6 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   emptyIcon: {
-    fontSize: 48,
     marginBottom: 8,
   },
   emptyTitle: {

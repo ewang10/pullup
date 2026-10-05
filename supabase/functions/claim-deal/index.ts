@@ -32,6 +32,17 @@ serve(async (req) => {
       });
     }
 
+    // Only riders claim deals. Drivers earn through riders' claims, and venue
+    // or staff accounts have no reason to claim. Role comes from public.users,
+    // never from user_metadata (which users can edit).
+    const { data: profile } = await adminSupabase.from('users').select('role').eq('id', user.id).single();
+    if (profile?.role !== 'rider') {
+      return new Response(JSON.stringify({ error: 'Only rider accounts can claim deals.' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Drivers are linked later through link-driver, which checks approval;
     // any referring_driver_id sent by the client is ignored.
     const { deal_id } = await req.json();

@@ -181,7 +181,7 @@ export default function SignInScreen() {
               {loading ? (
                 <ActivityIndicator color="#FFFFFF" accessibilityLabel="Loading" />
               ) : (
-                <Text style={styles.buttonText}>Sign In</Text>
+                <Text style={styles.buttonText}>Sign in</Text>
               )}
             </Pressable>
 
@@ -192,7 +192,7 @@ export default function SignInScreen() {
                   accessibilityLabel="Sign up"
                   accessibilityRole="button"
                 >
-                  <Text style={styles.footerLink}>Sign Up</Text>
+                  <Text style={styles.footerLink}>Sign up</Text>
                 </Pressable>
               </Link>
             </View>

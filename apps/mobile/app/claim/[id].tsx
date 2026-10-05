@@ -3,7 +3,7 @@
  * Active claim detail screen.
  *
  * Displays the current status of a deal claim, a live countdown timer until
- * expiry, a step progress indicator (Reserved -> Verified -> Complete), and
+ * expiry, a step progress indicator (Claimed -> Checked in -> Credit paid), and
  * action buttons to scan the venue QR code, upload a ride receipt, or cancel
  * the claim.
  *
@@ -76,33 +76,24 @@ function useCountdown(expiresAt: string | undefined) {
 
 // ── Step progress indicator ──────────────────────────────────
 
-/** The three logical steps a claim goes through. */
+/** The three steps a visit goes through, as the rider sees them. */
 const STEPS = [
-  { key: "reserved", label: "Reserved" },
-  { key: "verified", label: "Verified" },
-  { key: "completed", label: "Complete" },
+  { key: "claimed", label: "Claimed" },
+  { key: "checked_in", label: "Checked in" },
+  { key: "paid", label: "Credit paid" },
 ] as const;
 
 /**
- * Map a `ClaimStatus` to the zero-based step index.
- *
- * - `reserved` -> step 0
- * - `completed` -> step 2 (both verified and complete)
- * - `expired` / `cancelled` -> step 0 (no progress beyond reservation)
+ * Zero-based index of the last finished step: claimed (0), checked in (1),
+ * or credit paid (2, only once any required receipts are approved).
  */
-function statusToStepIndex(status: ClaimStatus): number {
-  switch (status) {
-    case CLAIM_STATUSES.COMPLETED:
-      return 2;
-    case CLAIM_STATUSES.RESERVED:
-      return 0;
-    default:
-      return 0;
-  }
+function stepIndex(status: ClaimStatus, creditPaid: boolean): number {
+  if (status !== CLAIM_STATUSES.COMPLETED) return 0;
+  return creditPaid ? 2 : 1;
 }
 
-function StepProgress({ status }: { status: ClaimStatus }) {
-  const currentStep = statusToStepIndex(status);
+function StepProgress({ status, creditPaid }: { status: ClaimStatus; creditPaid: boolean }) {
+  const currentStep = stepIndex(status, creditPaid);
 
   return (
     <View
@@ -221,6 +212,14 @@ const stepStyles = StyleSheet.create({
 });
 
 // ── Status badge helper ──────────────────────────────────────
+
+// Same labels as the Claims list.
+const STATUS_LABEL: Record<string, string> = {
+  reserved: "Reserved",
+  completed: "Visited",
+  expired: "Expired",
+  cancelled: "Cancelled",
+};
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   reserved: { bg: "#FEF3C7", text: "#92400E" },
@@ -357,7 +356,7 @@ export default function ClaimDetailScreen() {
     const permResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permResult.granted) {
       Alert.alert(
-        "Permission Required",
+        "Permission needed",
         "PullUp needs access to your photos to upload a receipt."
       );
       return;
@@ -390,12 +389,12 @@ export default function ClaimDetailScreen() {
     if (!claim) return;
 
     Alert.alert(
-      "Cancel Claim",
+      "Cancel claim",
       "Are you sure you want to cancel this claim? This action cannot be undone.",
       [
-        { text: "Keep Claim", style: "cancel" },
+        { text: "Keep claim", style: "cancel" },
         {
-          text: "Cancel Claim",
+          text: "Cancel claim",
           style: "destructive",
           onPress: async () => {
             setActionLoading(true);
@@ -405,7 +404,7 @@ export default function ClaimDetailScreen() {
             if (err) {
               Alert.alert("Error", err);
             } else {
-              Alert.alert("Claim Cancelled", "Your claim has been cancelled.", [
+              Alert.alert("Claim cancelled", "Your claim has been cancelled.", [
                 { text: "OK", onPress: () => router.back() },
               ]);
             }
@@ -479,6 +478,19 @@ export default function ClaimDetailScreen() {
       : []),
   ];
   const allReceiptsApproved = requiredReceipts.every((r) => r.status === "approved");
+  // One-word receipt summary for the details grid, shown only after check-in.
+  const receiptSummary =
+    requiredReceipts.length === 0
+      ? "Not needed"
+      : allReceiptsApproved
+      ? "Approved"
+      : claim.unverified_at
+      ? "Missed"
+      : requiredReceipts.some((r) => r.status === "rejected")
+      ? "Re-upload"
+      : requiredReceipts.some((r) => !r.url)
+      ? "To upload"
+      : "In review";
 
   return (
     <View style={styles.container}>
@@ -500,7 +512,7 @@ export default function ClaimDetailScreen() {
               style={[styles.statusBadge, { backgroundColor: statusColors.bg }]}
             >
               <Text style={[styles.statusText, { color: statusColors.text }]}>
-                {claim.status.charAt(0).toUpperCase() + claim.status.slice(1)}
+                {STATUS_LABEL[claim.status] ?? claim.status}
               </Text>
             </View>
             {isReserved && !isExpired && (
@@ -517,8 +529,10 @@ export default function ClaimDetailScreen() {
             )}
           </View>
 
-          {/* Step progress */}
-          <StepProgress status={claim.status} />
+          {/* Step progress (not for claims that ended without a visit) */}
+          {(isReserved || isCompleted) && (
+            <StepProgress status={claim.status} creditPaid={claim.ride_credit_paid} />
+          )}
         </View>
 
         {/* Deal info card */}
@@ -545,8 +559,13 @@ export default function ClaimDetailScreen() {
               <View accessibilityLiveRegion="polite">
                 <Text style={styles.driverTitle}>✓ Driver added</Text>
                 <Text style={styles.driverText}>
-                  {linkedDriverName ?? "Your driver"} {isCompleted ? "earned" : "will earn"} a bonus for
-                  bringing you here. Your deal stays the same.
+                  {!isCompleted
+                    ? `${linkedDriverName ?? "Your driver"} will earn a bonus for bringing you here. Your deal stays the same.`
+                    : claim.ride_credit_paid
+                    ? `${linkedDriverName ?? "Your driver"} earned a bonus for bringing you here.`
+                    : claim.unverified_at
+                    ? "This visit closed without a receipt, so no bonus was paid."
+                    : `${linkedDriverName ?? "Your driver"} earns a bonus once your visit is approved.`}
                 </Text>
               </View>
             ) : (
@@ -722,42 +741,41 @@ export default function ClaimDetailScreen() {
         {/* Details grid */}
         <View style={styles.detailsGrid}>
           <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>Reserved At</Text>
+            <Text style={styles.detailLabel}>Claimed at</Text>
             <Text style={styles.detailValue}>
-              {new Date(claim.reserved_at).toLocaleTimeString([], {
-                hour: "2-digit",
+              {new Date(claim.reserved_at).toLocaleString([], {
+                month: "short",
+                day: "numeric",
+                hour: "numeric",
                 minute: "2-digit",
               })}
             </Text>
           </View>
           <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>Ride Credit</Text>
+            <Text style={styles.detailLabel}>Ride credit</Text>
             <Text style={styles.detailValue}>
-              ${claim.deal.ride_credit_amount}
+              ${Number(claim.deal.ride_credit_amount).toFixed(2)}
             </Text>
           </View>
-          <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>Receipts</Text>
-            <Text style={styles.detailValue}>
-              {requiredReceipts.length === 0
-                ? "Not needed"
-                : allReceiptsApproved
-                ? "Approved"
-                : claim.unverified_at
-                ? "Missed"
-                : "Needed"}
-            </Text>
-          </View>
-          <View style={styles.detailItem}>
-            <Text style={styles.detailLabel}>Credit Paid</Text>
-            <Text style={styles.detailValue}>
-              {claim.ride_credit_paid ? "Yes" : "No"}
-            </Text>
-          </View>
+          {/* Receipt and payment status only mean something after check-in. */}
+          {isCompleted && (
+            <View style={styles.detailItem}>
+              <Text style={styles.detailLabel}>Receipts</Text>
+              <Text style={styles.detailValue}>{receiptSummary}</Text>
+            </View>
+          )}
+          {isCompleted && (
+            <View style={styles.detailItem}>
+              <Text style={styles.detailLabel}>Credit paid</Text>
+              <Text style={styles.detailValue}>
+                {claim.ride_credit_paid ? "Yes" : "Not yet"}
+              </Text>
+            </View>
+          )}
         </View>
 
-        {/* Spacer for bottom bar */}
-        <View style={{ height: 120 }} />
+        {/* Room for the bottom bar, which only shows on active claims */}
+        <View style={{ height: isReserved && !isExpired ? 140 : 24 }} />
       </ScrollView>
 
       {/* Action buttons - only for active reserved claims */}
@@ -785,7 +803,7 @@ export default function ClaimDetailScreen() {
                 accessibilityLabel="Cancel this claim"
                 accessibilityRole="button"
               >
-                <Text style={styles.cancelClaimButtonText}>Cancel Claim</Text>
+                <Text style={styles.cancelClaimButtonText}>Cancel claim</Text>
               </Pressable>
             </>
           )}

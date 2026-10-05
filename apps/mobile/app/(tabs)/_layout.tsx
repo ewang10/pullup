@@ -76,7 +76,7 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: "Deals",
-          headerTitle: "Nearby Deals",
+          headerTitle: "Nearby deals",
           tabBarAccessibilityLabel: "Navigate to Deals map",
           tabBarIcon: ({ focused }) => (
             <TabIcon name="map" focused={focused} />
@@ -87,7 +87,7 @@ export default function TabsLayout() {
         name="deals"
         options={{
           title: "Browse",
-          headerTitle: "Browse Deals",
+          headerTitle: "Browse deals",
           tabBarAccessibilityLabel: "Browse deals list",
           tabBarIcon: ({ focused }) => (
             <TabIcon name="deals" focused={focused} />
@@ -158,21 +158,13 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
+  // Docked (not floating) so screens end above it and nothing hides behind
+  // it; the navigator adds the home-indicator inset itself.
   tabBar: {
     backgroundColor: "#FFFFFF",
-    borderTopWidth: 0,
-    height: 88,
-    paddingBottom: 28,
-    paddingTop: 8,
-    marginHorizontal: 12,
-    marginBottom: 8,
-    borderRadius: 20,
-    shadowColor: "#000000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 8,
-    position: "absolute",
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "#D1D5DB",
+    paddingTop: 6,
   },
   tabBarLabel: {
     fontSize: 12,

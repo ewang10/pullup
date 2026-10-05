@@ -556,6 +556,8 @@ export interface PayoutHistoryItem {
   label: string;
   amount: number;
   status: string;
+  /** Not settled yet (waiting for receipts, or a cash-out still processing). */
+  pending: boolean;
   at: string;
 }
 
@@ -583,6 +585,7 @@ export async function fetchDriverPayouts(userId: string): Promise<ApiResult<Payo
         label: `Bonus · ${b.venue_name}`,
         amount: Number(b.amount),
         status: b.kickback_paid ? "Paid out" : "Available",
+        pending: false,
         at: b.earned_at,
       })),
       ...((cashouts.data ?? []) as { id: string; amount: number; status: string; created_at: string }[]).map((c) => ({
@@ -591,6 +594,7 @@ export async function fetchDriverPayouts(userId: string): Promise<ApiResult<Payo
         label: "Cash out to bank",
         amount: Number(c.amount),
         status: c.status === "completed" ? "Sent" : c.status === "failed" ? "Failed" : "Processing",
+        pending: c.status !== "completed" && c.status !== "failed",
         at: c.created_at,
       })),
     ].sort((a, b) => b.at.localeCompare(a.at));
@@ -633,6 +637,7 @@ export async function fetchRiderWallet(userId: string): Promise<ApiResult<Payout
           label: `Ride credit · ${t.deal_claim?.deal?.title ?? "Deal"}`,
           amount: Number(t.amount),
           status: t.status === "completed" ? "Added" : t.status === "failed" ? "Failed" : "Waiting for receipts",
+          pending: t.status === "pending",
           at: t.created_at,
         })),
       ...((cashouts.data ?? []) as { id: string; amount: number; status: string; created_at: string }[]).map((c) => ({
@@ -641,6 +646,7 @@ export async function fetchRiderWallet(userId: string): Promise<ApiResult<Payout
         label: "Cash out to bank",
         amount: Number(c.amount),
         status: c.status === "completed" ? "Sent" : c.status === "failed" ? "Failed" : "Processing",
+        pending: c.status !== "completed" && c.status !== "failed",
         at: c.created_at,
       })),
     ].sort((a, b) => b.at.localeCompare(a.at));

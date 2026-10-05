@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import {
+  useWindowDimensions,
   View,
   Text,
   StyleSheet,
@@ -30,11 +31,27 @@ function StatCard({
   );
 }
 
+const STEPS = [
+  {
+    title: "Show your driver code",
+    body: "When you drive someone to a PullUp deal, they scan or type your code on their claim.",
+  },
+  {
+    title: "They complete the visit",
+    body: "Once they check in, and any receipts the deal needs are approved, you earn 20% of what the venue pays for the visit.",
+  },
+  {
+    title: "Cash out any time",
+    body: "Bonuses add up under Available to cash out. Send them to your bank whenever you like.",
+  },
+];
+
 export default function EarningsScreen() {
   const { driverStats, setDriverStats } = useAppStore();
   const { session } = useAuth();
   const userId = session?.user.id;
   const [payouts, setPayouts] = useState<PayoutAccount | null>(null);
+  const { fontScale } = useWindowDimensions();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -78,6 +95,8 @@ export default function EarningsScreen() {
 
   return (
     <ScrollView
+      // Re-lay out from scratch when the system text size changes.
+      key={fontScale}
       style={styles.container}
       contentContainerStyle={styles.scrollContent}
       refreshControl={
@@ -95,70 +114,42 @@ export default function EarningsScreen() {
         </View>
       )}
 
-      <View style={styles.earningsHero} accessible accessibilityLabel={`Total earned ${stats.total_earnings.toFixed(2)} dollars`}>
-        <Text style={styles.heroLabel}>Total earned</Text>
-        <Text style={styles.heroValue} numberOfLines={1} adjustsFontSizeToFit maxFontSizeMultiplier={1.6}>
-          ${stats.total_earnings.toFixed(2)}
-        </Text>
-      </View>
-
       {payouts && (
-        <View style={styles.payoutsBlock}>
+        <View style={styles.block}>
           <PayoutsCard kind="driver" account={payouts} onChanged={loadStats} />
         </View>
       )}
 
       <View style={styles.statsGrid}>
-        <StatCard
-          label="Riders brought"
-          value={stats.total_referrals.toString()}
-          color="#5B53EE"
-        />
-        <StatCard
-          label="Completed Claims"
-          value={stats.completed_claims.toString()}
-          color="#047857"
-        />
+        <StatCard label="Total earned" value={`$${stats.total_earnings.toFixed(2)}`} color="#1A1A2E" />
+        <StatCard label="Riders" value={stats.total_referrals.toString()} color="#5B53EE" />
+        <StatCard label="Visits" value={stats.completed_claims.toString()} color="#047857" />
+      </View>
+
+      <View style={styles.infoCard}>
+        <Text style={styles.sectionTitle} accessibilityRole="header">
+          How earnings work
+        </Text>
+        {STEPS.map((step, i) => (
+          <View key={step.title} style={styles.infoRow}>
+            <View style={styles.infoStep} accessible={false} importantForAccessibility="no-hide-descendants">
+              <Text style={styles.infoStepText} maxFontSizeMultiplier={1.4}>
+                {i + 1}
+              </Text>
+            </View>
+            <View style={styles.infoContent} accessible accessibilityLabel={`Step ${i + 1}: ${step.title}. ${step.body}`}>
+              <Text style={styles.infoTitle}>{step.title}</Text>
+              <Text style={styles.infoDescription}>{step.body}</Text>
+            </View>
+          </View>
+        ))}
       </View>
 
       {payouts && (
-        <View style={styles.payoutsBlock}>
+        <View style={styles.block}>
           <PayoutHistory account={payouts} emptyText="Bonuses you earn and cash-outs will show here." />
         </View>
       )}
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>How Earnings Work</Text>
-        <View style={styles.infoCard}>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoStep} maxFontSizeMultiplier={1.4}>1</Text>
-            <View style={styles.infoContent}>
-              <Text style={styles.infoTitle}>Show your driver code</Text>
-              <Text style={styles.infoDescription}>
-                When you drive someone to a PullUp deal, they scan or type your code on their claim.
-              </Text>
-            </View>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoStep} maxFontSizeMultiplier={1.4}>2</Text>
-            <View style={styles.infoContent}>
-              <Text style={styles.infoTitle}>Rider completes the visit</Text>
-              <Text style={styles.infoDescription}>
-                Once they check in at the venue, you earn 20% of what the venue pays for that visit.
-              </Text>
-            </View>
-          </View>
-          <View style={styles.infoRow}>
-            <Text style={styles.infoStep} maxFontSizeMultiplier={1.4}>3</Text>
-            <View style={styles.infoContent}>
-              <Text style={styles.infoTitle}>Get paid</Text>
-              <Text style={styles.infoDescription}>
-                Earnings are tracked in real-time and paid out weekly.
-              </Text>
-            </View>
-          </View>
-        </View>
-      </View>
     </ScrollView>
   );
 }
@@ -188,44 +179,22 @@ const styles = StyleSheet.create({
     color: "#B91C1C",
     fontSize: 14,
   },
-  earningsHero: {
-    backgroundColor: "#5B53EE",
-    borderRadius: 20,
-    padding: 32,
-    alignItems: "center",
-    marginBottom: 20,
-    shadowColor: "#5B53EE",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 14,
-    elevation: 8,
-  },
-  heroLabel: {
-    color: "#FFFFFF",
-    fontSize: 15,
-    fontWeight: "500",
-    marginBottom: 4,
-  },
-  heroValue: {
-    color: "#FFFFFF",
-    fontSize: 44,
-    fontWeight: "800",
-    marginBottom: 8,
-  },
-  payoutsBlock: {
+  block: {
     marginBottom: 16,
   },
   statsGrid: {
     flexDirection: "row",
-    gap: 12,
-    marginBottom: 24,
+    gap: 10,
+    marginBottom: 16,
   },
   statCard: {
     flex: 1,
     backgroundColor: "#FFFFFF",
     borderRadius: 14,
-    padding: 20,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
     alignItems: "center",
+    justifyContent: "center",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
@@ -233,17 +202,15 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   statValue: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: "800",
-    marginBottom: 4,
+    marginBottom: 2,
   },
   statLabel: {
     fontSize: 13,
-    color: "#6B7280",
+    color: "#4B5563",
     fontWeight: "500",
-  },
-  section: {
-    gap: 12,
+    textAlign: "center",
   },
   sectionTitle: {
     fontSize: 16,
@@ -254,23 +221,26 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 20,
-    gap: 20,
+    gap: 16,
+    marginBottom: 16,
   },
   infoRow: {
     flexDirection: "row",
-    gap: 14,
+    alignItems: "flex-start",
+    gap: 12,
   },
   infoStep: {
     width: 28,
     height: 28,
     borderRadius: 14,
     backgroundColor: "#F0EFFF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  infoStepText: {
     color: "#5B53EE",
     fontWeight: "700",
     fontSize: 14,
-    textAlign: "center",
-    lineHeight: 28,
-    overflow: "hidden",
   },
   infoContent: {
     flex: 1,
@@ -282,8 +252,8 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   infoDescription: {
-    fontSize: 13,
-    color: "#6B7280",
-    lineHeight: 18,
+    fontSize: 14,
+    color: "#4B5563",
+    lineHeight: 20,
   },
 });

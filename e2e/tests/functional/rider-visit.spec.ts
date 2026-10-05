@@ -198,3 +198,13 @@ test('a rider can cancel a claim, and a rejected receipt is not paid', async ({ 
   const { data: wallet } = await admin.from('rider_profiles').select('balance').eq('user_id', rider.id).single();
   expect(Number(wallet!.balance)).toBe(0);
 });
+
+test('only riders can claim deals', async () => {
+  const deal = await dealByTitle('Happy hour: $5 off drinks');
+  const password = process.env.CI_DEMO_PASSWORD ?? '';
+  for (const email of ['pullup.demo.app+driver@gmail.com', 'pullup.demo.app@gmail.com', 'pullup.demo.app+staff@gmail.com']) {
+    const client = await signedIn(email, password);
+    const res = await invoke(client, 'claim-deal', { deal_id: deal.id });
+    expect(res.error, email).toBe('Only rider accounts can claim deals.');
+  }
+});

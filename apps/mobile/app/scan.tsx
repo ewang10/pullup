@@ -138,7 +138,7 @@ export default function ScanScreen() {
   if (!permission.granted) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.permissionTitle}>Camera Access Required</Text>
+        <Text style={styles.permissionTitle}>Camera access needed</Text>
         <Text style={styles.permissionMessage}>
           {isDriverMode
             ? "PullUp needs camera access to scan your driver's code."
@@ -150,7 +150,7 @@ export default function ScanScreen() {
           accessibilityLabel="Grant camera permission"
           accessibilityRole="button"
         >
-          <Text style={styles.permissionButtonText}>Allow Camera Access</Text>
+          <Text style={styles.permissionButtonText}>Allow camera access</Text>
         </Pressable>
         <Pressable
           style={styles.backButton}
@@ -158,7 +158,7 @@ export default function ScanScreen() {
           accessibilityLabel="Go back"
           accessibilityRole="button"
         >
-          <Text style={styles.backButtonText}>Go Back</Text>
+          <Text style={styles.backButtonText}>Go back</Text>
         </Pressable>
       </View>
     );
@@ -265,7 +265,7 @@ export default function ScanScreen() {
             <View style={styles.errorIcon}>
               <Text style={styles.errorIconText} maxFontSizeMultiplier={1.4}>!</Text>
             </View>
-            <Text style={styles.resultTitle}>Scan Failed</Text>
+            <Text style={styles.resultTitle}>Scan failed</Text>
             <Text style={styles.resultMessage}>
               {errorMessage ?? "An unexpected error occurred."}
             </Text>
@@ -275,7 +275,7 @@ export default function ScanScreen() {
               accessibilityLabel="Try scanning again"
               accessibilityRole="button"
             >
-              <Text style={styles.retryButtonText}>Try Again</Text>
+              <Text style={styles.retryButtonText}>Try again</Text>
             </Pressable>
             <Pressable
               style={styles.cancelButton}
@@ -284,7 +284,7 @@ export default function ScanScreen() {
               accessibilityHint={isDriverMode ? "You can type the code instead" : undefined}
               accessibilityRole="button"
             >
-              <Text style={styles.cancelButtonText}>Go Back</Text>
+              <Text style={styles.cancelButtonText}>Go back</Text>
             </Pressable>
           </View>
         </View>

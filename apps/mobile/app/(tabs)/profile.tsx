@@ -20,10 +20,10 @@ export default function ProfileScreen() {
   const router = useRouter();
 
   const handleSignOut = () => {
-    Alert.alert("Sign Out", "Are you sure you want to sign out?", [
+    Alert.alert("Sign out", "Are you sure you want to sign out?", [
       { text: "Cancel", style: "cancel" },
       {
-        text: "Sign Out",
+        text: "Sign out",
         style: "destructive",
         onPress: async () => {
           reset();
@@ -63,7 +63,7 @@ export default function ProfileScreen() {
           <Text style={styles.sectionTitle}>Account</Text>
 
           <View style={styles.menuItem}>
-            <Text style={styles.menuLabel}>Full Name</Text>
+            <Text style={styles.menuLabel}>Full name</Text>
             <Text style={styles.menuValue}>
               {profile?.full_name ?? "-"}
             </Text>
@@ -91,7 +91,7 @@ export default function ProfileScreen() {
           )}
 
           <View style={styles.menuItem}>
-            <Text style={styles.menuLabel}>Member Since</Text>
+            <Text style={styles.menuLabel}>Member since</Text>
             <Text style={styles.menuValue}>
               {profile?.created_at
                 ? new Date(profile.created_at).toLocaleDateString()
@@ -138,7 +138,7 @@ export default function ProfileScreen() {
           accessibilityRole="button"
           accessibilityLabel="Sign out"
         >
-          <Text style={styles.signOutText}>Sign Out</Text>
+          <Text style={styles.signOutText}>Sign out</Text>
         </Pressable>
 
         <Text style={styles.version}>PullUp v1.0.0</Text>
