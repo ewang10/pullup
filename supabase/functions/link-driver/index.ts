@@ -42,8 +42,11 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-    if (!referral_code) {
-      return new Response(JSON.stringify({ error: 'referral_code is required' }), {
+    // Exact match on the normalized code (codes are 8 characters from
+    // A–Z/2–9). Never pattern-match user input: "%" or "_" would match others.
+    const code = typeof referral_code === 'string' ? referral_code.trim().toUpperCase().replace(/[\s-]/g, '') : '';
+    if (!/^[A-Z0-9]{4,16}$/.test(code)) {
+      return new Response(JSON.stringify({ error: 'Enter a valid driver code' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -83,12 +86,12 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
 
-    // Look up driver by referral code (case-insensitive) using admin client to bypass RLS
+    // Look up driver by referral code using admin client to bypass RLS
     const { data: driverProfile, error: driverError } = await adminSupabase
       .from('driver_profiles')
       .select('id, user_id, verification_status')
-      .ilike('referral_code', referral_code)
-      .single();
+      .eq('referral_code', code)
+      .maybeSingle();
 
     if (driverError || !driverProfile) {
       return new Response(JSON.stringify({ error: 'Driver not found for this referral code' }), {

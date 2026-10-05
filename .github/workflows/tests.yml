@@ -47,6 +47,99 @@ jobs:
         run: supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor,realtime,postgres-meta
       - run: supabase test db
 
+  functional:
+    name: Functional tests (throwaway database)
+    if: github.event_name != 'deployment_status'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # Test-only password for accounts in the throwaway database.
+      CI_DEMO_PASSWORD: Ci-Demo-Pass1!
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start a local Supabase with all migrations
+        run: supabase start -x studio,imgproxy,logflare,vector,supavisor,postgres-meta,edge-runtime
+      - name: Export local API keys
+        run: |
+          supabase status -o env | sed -E 's/^([A-Z_]+)="?([^"]*)"?$/\1=\2/' > local.env
+          set -a; . ./local.env; set +a
+          {
+            echo "SUPABASE_URL=$API_URL"
+            echo "SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "MAILPIT_URL=${INBUCKET_URL:-${MAILPIT_URL:-http://127.0.0.1:54324}}"
+          } >> "$GITHUB_ENV"
+          rm local.env
+      - name: Serve edge functions
+        env:
+          STRIPE_TEST_SECRET_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
+        run: |
+          {
+            echo "STRIPE_SECRET_KEY=$STRIPE_TEST_SECRET_KEY"
+            echo "DEMO_MODE=false"
+            echo "CRON_SECRET=ci-only"
+            echo "NEXT_PUBLIC_APP_URL=http://localhost:3000"
+          } > "$RUNNER_TEMP/functions.env"
+          nohup supabase functions serve --no-verify-jwt --env-file "$RUNNER_TEMP/functions.env" > functions.log 2>&1 &
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' -X OPTIONS "$SUPABASE_URL/functions/v1/claim-deal" || true)
+            [ "$code" = "200" ] || [ "$code" = "204" ] && break
+            sleep 3
+          done
+          echo "functions: $code"
+
+      - run: npm ci
+      - name: Create demo accounts and data
+        run: |
+          node scripts/ci-bootstrap.mjs
+          node --no-warnings scripts/seed-demo.mjs
+
+      - name: Build and start the website against the local database
+        env:
+          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ vars.STRIPE_PUBLISHABLE_KEY }}
+          NEXT_PUBLIC_DEMO_EMAIL: pullup.demo.app@gmail.com
+          NEXT_PUBLIC_DEMO_PASSWORD: ${{ env.CI_DEMO_PASSWORD }}
+          NEXT_PUBLIC_DEMO_STAFF_EMAIL: pullup.demo.app+staff@gmail.com
+          NEXT_PUBLIC_DEMO_STAFF_PASSWORD: ${{ env.CI_DEMO_PASSWORD }}
+          NEXT_PUBLIC_DEMO_ADMIN_EMAIL: pullup.demo.app+admin@gmail.com
+          NEXT_PUBLIC_DEMO_ADMIN_PASSWORD: ${{ env.CI_DEMO_PASSWORD }}
+          NEXT_PUBLIC_DEMO_CHECKIN_CODE: CAFE42
+        run: |
+          npm run build -w @pullup/web
+          nohup npm run start -w @pullup/web -- -p 3000 > web.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf -o /dev/null http://localhost:3000/login && break; sleep 2; done
+
+      - run: npx playwright install --with-deps chromium
+        working-directory: e2e
+      - name: Run all browser tests
+        working-directory: e2e
+        env:
+          E2E_LOCAL: '1'
+          E2E_BASE_URL: http://localhost:3000
+        run: npx playwright test
+
+      - name: Server logs
+        if: failure()
+        run: |
+          echo "::group::functions.log"; tail -n 200 functions.log || true; echo "::endgroup::"
+          echo "::group::web.log"; tail -n 200 web.log || true; echo "::endgroup::"
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: functional-report
+          path: e2e/playwright-report
+          retention-days: 7
+
   browser:
     name: Browser tests (access + WCAG) on production
     if: >-
