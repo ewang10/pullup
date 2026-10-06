@@ -170,10 +170,10 @@ export default function DealsMapScreen() {
         <View style={styles.venuePanel} accessibilityViewIsModal={false}>
           <View style={styles.venuePanelHeader}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.venuePanelTitle} accessibilityRole="header">
+              <Text style={styles.venuePanelTitle} maxFontSizeMultiplier={1.5} accessibilityRole="header">
                 {selected.venue.name}
               </Text>
-              <Text style={styles.venuePanelAddress}>{selected.venue.address}</Text>
+              <Text style={styles.venuePanelAddress} maxFontSizeMultiplier={1.5}>{selected.venue.address}</Text>
             </View>
             <Pressable
               onPress={() => setSelectedVenueId(null)}
@@ -195,8 +195,8 @@ export default function DealsMapScreen() {
                 accessibilityLabel={`${deal.title}, ${formatDiscount(deal)}, ${deal.slots_remaining} spots left today`}
               >
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.venueDealTitle}>{deal.title}</Text>
-                  <Text style={styles.venueDealMeta}>
+                  <Text style={styles.venueDealTitle} maxFontSizeMultiplier={1.5}>{deal.title}</Text>
+                  <Text style={styles.venueDealMeta} maxFontSizeMultiplier={1.5}>
                     {formatDiscount(deal)} · {deal.slots_remaining} spots left today
                   </Text>
                 </View>
@@ -232,8 +232,8 @@ export default function DealsMapScreen() {
 
       {showingDemo && !dealsError && (
         <View style={styles.demoBanner} accessibilityRole="summary">
-          <Text style={styles.demoBannerTitle}>No PullUp venues near you yet</Text>
-          <Text style={styles.demoBannerText}>
+          <Text style={styles.demoBannerTitle} maxFontSizeMultiplier={1.5}>No PullUp venues near you yet</Text>
+          <Text style={styles.demoBannerText} maxFontSizeMultiplier={1.5}>
             Showing {deals[0].venue.name}, a demo venue in Sacramento.
           </Text>
         </View>
@@ -241,7 +241,7 @@ export default function DealsMapScreen() {
 
       {!selected && (
       <View style={styles.dealCount}>
-        <Text style={styles.dealCountText}>
+        <Text style={styles.dealCountText} maxFontSizeMultiplier={1.5}>
           {deals.length} {showingDemo ? "demo " : ""}deal{deals.length !== 1 ? "s" : ""}
           {showingDemo ? "" : " nearby"}
         </Text>
@@ -357,7 +357,7 @@ const styles = StyleSheet.create({
     left: 12,
     right: 12,
     bottom: 12,
-    maxHeight: "55%",
+    maxHeight: "70%",
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
     paddingTop: 16,

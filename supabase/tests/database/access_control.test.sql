@@ -173,5 +173,20 @@ SELECT pg_temp.as_owner();
 SELECT is((SELECT payouts_on_hold FROM public.driver_profiles WHERE id = '00000000-0000-4000-8000-0000000000d1'), true,
           'suspending with a payout hold sets the hold');
 
+-- ---------------------------------------------------------------------------
+-- Shared demo accounts: credentials can't be changed by anyone signed in to them
+-- ---------------------------------------------------------------------------
+INSERT INTO auth.users (id, instance_id, aud, role, email, encrypted_password, raw_user_meta_data, created_at, updated_at)
+VALUES ('00000000-0000-4000-8000-0000000000f2', '00000000-0000-0000-0000-000000000000', 'authenticated',
+        'authenticated', 'pullup.demo.app+rider@gmail.com', 'old-hash', '{"full_name":"Demo Rider","role":"rider"}', now(), now());
+SELECT throws_ok($$UPDATE auth.users SET encrypted_password = 'new-hash' WHERE id = '00000000-0000-4000-8000-0000000000f2'$$,
+                 'P0001', NULL, 'demo account passwords are locked');
+SELECT throws_ok($$UPDATE auth.users SET email = 'stolen@test.local' WHERE id = '00000000-0000-4000-8000-0000000000f2'$$,
+                 'P0001', NULL, 'demo account emails are locked');
+SELECT lives_ok($$UPDATE auth.users SET last_sign_in_at = now() WHERE id = '00000000-0000-4000-8000-0000000000f2'$$,
+                'demo accounts can still sign in');
+SELECT lives_ok($$UPDATE auth.users SET encrypted_password = 'new-hash' WHERE id = '00000000-0000-4000-8000-0000000000f1'$$,
+                'other accounts can change their password');
+
 SELECT * FROM finish();
 ROLLBACK;

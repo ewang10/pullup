@@ -6,7 +6,7 @@
  * - A completed visit is a claim where the rider showed up; only these are
  *   charged to the venue.
  * - The venue's cost per completed visit is split into the rider's ride
- *   credit, the driver's referral bonus and PullUp's fee. The discount itself
+ *   credit, the driver's bonus and PullUp's fee. The discount itself
  *   is given by the venue at checkout and never passes through PullUp.
  */
 

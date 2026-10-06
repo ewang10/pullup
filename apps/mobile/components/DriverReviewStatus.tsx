@@ -44,7 +44,10 @@ export default function DriverReviewStatus({ driverProfile }: { driverProfile: D
   };
 
   const contactSupport = () => {
-    if (!SUPPORT_EMAIL) return;
+    if (!SUPPORT_EMAIL) {
+      Linking.openURL(`${process.env.EXPO_PUBLIC_SITE_URL ?? "https://pullup-kappa-gray.vercel.app"}/support`);
+      return;
+    }
     const subject = encodeURIComponent(rejected ? "Driver application review" : "Driver application question");
     const body = encodeURIComponent(`Account: ${profile?.email ?? ""}\n\n`);
     Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`);
@@ -59,7 +62,7 @@ export default function DriverReviewStatus({ driverProfile }: { driverProfile: D
           </Text>
         </View>
 
-        <Text style={styles.title} accessibilityRole="header">
+        <Text maxFontSizeMultiplier={1.5} style={styles.title} accessibilityRole="header">
           {suspended
             ? "Your driver account is on hold"
             : rejected

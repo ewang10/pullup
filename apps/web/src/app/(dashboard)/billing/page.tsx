@@ -2,7 +2,7 @@
  * Billing page for venue administrators.
  *
  * Lists what the venue has been charged: one charge per completed visit,
- * split into the rider's ride credit, the driver's referral bonus and
+ * split into the rider's ride credit, the driver's bonus and
  * PullUp's fee. Transactions link to a venue through deal_claims -> deals.
  * Also: link the bank account charges are debited from, and recover from a
  * failed payment (deals are paused until a failed charge is paid).
@@ -178,7 +178,7 @@ export default function BillingPage() {
               <dd className="font-medium text-gray-900">{pct(SPLIT_RIDE_CREDIT)}</dd>
             </div>
             <div className="flex justify-between gap-2">
-              <dt className="text-gray-700">Driver&apos;s referral bonus</dt>
+              <dt className="text-gray-700">Driver&apos;s bonus</dt>
               <dd className="font-medium text-gray-900">{pct(SPLIT_DRIVER_KICKBACK)}</dd>
             </div>
             <div className="flex justify-between gap-2">

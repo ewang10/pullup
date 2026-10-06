@@ -23,7 +23,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { PASSWORD_REQUIREMENTS_TEXT, validatePassword } from "@pullup/shared";
+import { DEMO_ACCOUNT_LOCKED_TEXT, PASSWORD_REQUIREMENTS_TEXT, isDemoAccountEmail, validatePassword } from "@pullup/shared";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../lib/auth";
 
@@ -50,6 +50,10 @@ export default function ResetPasswordScreen() {
     const target = email.trim();
     if (!target) {
       setError("Enter the email address for your account.");
+      return;
+    }
+    if (isDemoAccountEmail(target)) {
+      setError(DEMO_ACCOUNT_LOCKED_TEXT);
       return;
     }
     setLoading(true);
@@ -88,7 +92,9 @@ export default function ResetPasswordScreen() {
 
     const { error: updateError } = await supabase.auth.updateUser({ password });
     setLoading(false);
-    if (updateError) return setError(updateError.message);
+    if (updateError) {
+      return setError(/demo_account_locked/.test(updateError.message) ? DEMO_ACCOUNT_LOCKED_TEXT : updateError.message);
+    }
     setStep("done");
   };
 
@@ -116,7 +122,7 @@ export default function ResetPasswordScreen() {
             </Pressable>
           )}
 
-          <Text style={styles.title} accessibilityRole="header">{title}</Text>
+          <Text maxFontSizeMultiplier={1.5} style={styles.title} accessibilityRole="header">{title}</Text>
 
           {error && (
             <View style={styles.errorBox} accessibilityRole="alert" accessibilityLiveRegion="polite">

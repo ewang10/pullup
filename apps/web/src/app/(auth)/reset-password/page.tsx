@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { createSupabaseBrowserClient } from '@/lib/supabase-client';
-import { PASSWORD_MIN_LENGTH, PASSWORD_REQUIREMENTS_TEXT, validatePassword } from '@pullup/shared';
+import { DEMO_ACCOUNT_LOCKED_TEXT, PASSWORD_MIN_LENGTH, PASSWORD_REQUIREMENTS_TEXT, isDemoAccountEmail, validatePassword } from '@pullup/shared';
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -74,6 +74,11 @@ export default function ResetPasswordPage() {
     setLoading(true);
     setMessage(null);
 
+    if (isDemoAccountEmail(email)) {
+      setMessage({ type: 'error', text: DEMO_ACCOUNT_LOCKED_TEXT });
+      setLoading(false);
+      return;
+    }
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent('/reset-password?mode=recovery')}`,
     });
@@ -106,7 +111,7 @@ export default function ResetPasswordPage() {
     const { error } = await supabase.auth.updateUser({ password });
 
     if (error) {
-      setMessage({ type: 'error', text: error.message });
+      setMessage({ type: 'error', text: /demo_account_locked/.test(error.message) ? DEMO_ACCOUNT_LOCKED_TEXT : error.message });
     } else {
       setMessage({ type: 'success', text: 'Password updated successfully. Redirecting...' });
       setTimeout(() => {

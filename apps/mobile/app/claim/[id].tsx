@@ -110,38 +110,31 @@ function StepProgress({ status, creditPaid }: { status: ClaimStatus; creditPaid:
 
         return (
           <View key={step.key} style={stepStyles.stepRow}>
-            {/* Circle */}
-            <View
-              style={[
-                stepStyles.circle,
-                isComplete ? stepStyles.circleComplete : stepStyles.circleIncomplete,
-              ]}
-            >
-              {isComplete ? (
-                <Text style={stepStyles.checkText} maxFontSizeMultiplier={1.4}>{"\u2713"}</Text>
-              ) : (
-                <Text style={stepStyles.stepNumber} maxFontSizeMultiplier={1.4}>{index + 1}</Text>
-              )}
+            <View style={stepStyles.step}>
+              <View
+                style={[
+                  stepStyles.circle,
+                  isComplete ? stepStyles.circleComplete : stepStyles.circleIncomplete,
+                ]}
+              >
+                {isComplete ? (
+                  <Text style={stepStyles.checkText} maxFontSizeMultiplier={1.4}>{"\u2713"}</Text>
+                ) : (
+                  <Text style={stepStyles.stepNumber} maxFontSizeMultiplier={1.4}>{index + 1}</Text>
+                )}
+              </View>
+              <Text
+                style={[stepStyles.label, isComplete ? stepStyles.labelComplete : stepStyles.labelIncomplete]}
+                numberOfLines={2}
+              >
+                {step.label}
+              </Text>
             </View>
-
-            {/* Label */}
-            <Text
-              style={[
-                stepStyles.label,
-                isComplete ? stepStyles.labelComplete : stepStyles.labelIncomplete,
-              ]}
-            >
-              {step.label}
-            </Text>
-
-            {/* Connector line */}
             {!isLast && (
               <View
                 style={[
                   stepStyles.connector,
-                  index < currentStep
-                    ? stepStyles.connectorComplete
-                    : stepStyles.connectorIncomplete,
+                  index < currentStep ? stepStyles.connectorComplete : stepStyles.connectorIncomplete,
                 ]}
               />
             )}
@@ -155,13 +148,20 @@ function StepProgress({ status, creditPaid }: { status: ClaimStatus; creditPaid:
 const stepStyles = StyleSheet.create({
   container: {
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 16,
+    alignItems: "flex-start",
+    paddingTop: 16,
+    paddingBottom: 4,
   },
+  // Each step takes an equal share; the connector sits beside its circle.
   stepRow: {
+    flex: 1,
     flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  step: {
+    flex: 1,
     alignItems: "center",
+    gap: 6,
   },
   circle: {
     width: 32,
@@ -187,21 +187,25 @@ const stepStyles = StyleSheet.create({
     fontWeight: "700",
   },
   label: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "600",
-    marginLeft: 6,
+    textAlign: "center",
   },
   labelComplete: {
     color: "#5B53EE",
   },
   labelIncomplete: {
-    color: "#6B7280",
+    color: "#4B5563",
   },
   connector: {
-    width: 24,
+    position: "absolute",
+    top: 15,
+    left: "50%",
+    right: "-50%",
+    marginLeft: 22,
+    marginRight: 22,
     height: 3,
     borderRadius: 2,
-    marginHorizontal: 6,
   },
   connectorComplete: {
     backgroundColor: "#5B53EE",

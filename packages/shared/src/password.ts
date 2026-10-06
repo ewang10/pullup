@@ -30,3 +30,15 @@ export function validatePassword(password: string): string | null {
   }
   return null;
 }
+
+/**
+ * The public demo accounts (pullup.demo.app+…@gmail.com) share a password
+ * shown on the site, so their credentials are locked in the database
+ * (migration 00041). Use this to explain that instead of offering a change.
+ */
+export function isDemoAccountEmail(email: string | null | undefined): boolean {
+  return /^pullup\.demo\.app(\+[^@]*)?@gmail\.com$/i.test(email ?? '');
+}
+
+export const DEMO_ACCOUNT_LOCKED_TEXT =
+  "This is a shared demo account, so its password can't be changed. Create your own account to try this.";

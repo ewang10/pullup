@@ -3,6 +3,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useAuth } from "../../lib/auth";
 import { useAppStore } from "../../lib/store";
+import { DEMO_ACCOUNT_LOCKED_TEXT, isDemoAccountEmail } from "@pullup/shared";
 
 // Help and legal pages live on the public website so they can change without an app update.
 const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL ?? "https://pullup-kappa-gray.vercel.app";
@@ -50,17 +51,17 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        <Text style={styles.name}>{profile?.full_name ?? "User"}</Text>
-        <Text style={styles.email}>{user?.email ?? ""}</Text>
+        <Text maxFontSizeMultiplier={1.5} style={styles.name}>{profile?.full_name ?? "User"}</Text>
+        <Text style={styles.email} maxFontSizeMultiplier={1.5}>{user?.email ?? ""}</Text>
 
         <View style={styles.roleBadge}>
-          <Text style={styles.roleText}>
+          <Text style={styles.roleText} maxFontSizeMultiplier={1.5}>
             {role === "driver" ? "Driver" : "Rider"}
           </Text>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Account</Text>
+          <Text style={styles.sectionTitle} maxFontSizeMultiplier={1.5}>Account</Text>
 
           <View style={styles.menuItem}>
             <Text style={styles.menuLabel}>Full name</Text>
@@ -103,15 +104,21 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle} accessibilityRole="header">Settings</Text>
 
-          <Pressable
-            style={styles.menuButton}
-            onPress={() => router.push("/reset-password")}
-            accessibilityRole="button"
-            accessibilityLabel="Change password"
-          >
-            <Text style={styles.menuLabel}>Change password</Text>
-            <Text style={styles.menuChevron} aria-hidden>&gt;</Text>
-          </Pressable>
+          {isDemoAccountEmail(user?.email) ? (
+            <View style={styles.menuButton}>
+              <Text style={styles.menuNote}>{DEMO_ACCOUNT_LOCKED_TEXT}</Text>
+            </View>
+          ) : (
+            <Pressable
+              style={styles.menuButton}
+              onPress={() => router.push("/reset-password")}
+              accessibilityRole="button"
+              accessibilityLabel="Change password"
+            >
+              <Text style={styles.menuLabel}>Change password</Text>
+              <Text style={styles.menuChevron} aria-hidden>&gt;</Text>
+            </Pressable>
+          )}
 
         </View>
 
@@ -210,8 +217,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     marginBottom: 12,
   },
+  // Wraps so long values (like an email) drop below the label at large text sizes.
   menuItem: {
     flexDirection: "row",
+    flexWrap: "wrap",
+    columnGap: 12,
+    rowGap: 2,
     justifyContent: "space-between",
     alignItems: "center",
     backgroundColor: "#FFFFFF",
@@ -230,13 +241,20 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#F3F4F6",
   },
+  menuNote: {
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#4B5563",
+  },
   menuLabel: {
     fontSize: 15,
     color: "#1A1A2E",
   },
   menuValue: {
     fontSize: 15,
-    color: "#6B7280",
+    color: "#4B5563",
+    flexShrink: 1,
   },
   menuValueHighlight: {
     fontSize: 15,

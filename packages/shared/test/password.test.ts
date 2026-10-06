@@ -22,3 +22,14 @@ describe('validatePassword', () => {
     }
   });
 });
+
+describe('isDemoAccountEmail', () => {
+  it('recognizes the shared demo accounts', async () => {
+    const { isDemoAccountEmail } = await import('../src/password');
+    expect(isDemoAccountEmail('pullup.demo.app@gmail.com')).toBe(true);
+    expect(isDemoAccountEmail('PullUp.Demo.App+rider@gmail.com')).toBe(true);
+    expect(isDemoAccountEmail('someone@gmail.com')).toBe(false);
+    expect(isDemoAccountEmail('pullup.demo.app@gmail.com.evil.test')).toBe(false);
+    expect(isDemoAccountEmail(null)).toBe(false);
+  });
+});

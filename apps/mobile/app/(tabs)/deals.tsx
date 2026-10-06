@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: "#047857",
-    marginTop: 6,
+    marginTop: 8,
   },
   container: {
     flex: 1,
@@ -291,10 +291,10 @@ const styles = StyleSheet.create({
   },
   venueAddress: {
     fontSize: 13,
-    color: "#6B7280",
-    marginBottom: 12,
+    color: "#4B5563",
   },
   cardFooter: {
+    marginTop: 12,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",

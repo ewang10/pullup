@@ -22,7 +22,7 @@ export default function WelcomeScreen() {
             PullUp
           </Text>
         </View>
-        <Text style={styles.tagline}>
+        <Text maxFontSizeMultiplier={1.5} style={styles.tagline}>
           Exclusive deals.{"\n"}Right around the corner.
         </Text>
         <Text style={styles.subtitle}>

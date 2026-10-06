@@ -20,6 +20,7 @@ import {
   Pressable,
   ActivityIndicator,
   Dimensions,
+  Linking,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { CameraView, useCameraPermissions } from "expo-camera";
@@ -135,27 +136,36 @@ export default function ScanScreen() {
   }
 
   // ── Permission denied ──────────────────────────────────────
+  // After a "Don't Allow", iOS won't ask again: send people to Settings, and
+  // remind them they can type the code instead.
   if (!permission.granted) {
+    const canAsk = permission.canAskAgain;
     return (
       <View style={styles.centered}>
-        <Text style={styles.permissionTitle}>Camera access needed</Text>
+        <Text style={styles.permissionTitle} accessibilityRole="header">
+          Camera access needed
+        </Text>
         <Text style={styles.permissionMessage}>
           {isDriverMode
             ? "PullUp needs camera access to scan your driver's code."
             : "PullUp needs camera access to scan the venue QR code and verify your visit."}
+          {canAsk ? "" : " Turn on Camera for PullUp in Settings."}
         </Text>
         <Pressable
           style={styles.permissionButton}
-          onPress={requestPermission}
-          accessibilityLabel="Grant camera permission"
+          onPress={canAsk ? requestPermission : () => Linking.openSettings()}
           accessibilityRole="button"
         >
-          <Text style={styles.permissionButtonText}>Allow camera access</Text>
+          <Text style={styles.permissionButtonText}>{canAsk ? "Allow camera access" : "Open Settings"}</Text>
         </Pressable>
+        <Text style={styles.permissionMessage}>
+          {isDriverMode
+            ? "No camera? Go back and type your driver's code instead."
+            : "No camera? Go back and type the venue's check-in code instead."}
+        </Text>
         <Pressable
           style={styles.backButton}
           onPress={() => router.back()}
-          accessibilityLabel="Go back"
           accessibilityRole="button"
         >
           <Text style={styles.backButtonText}>Go back</Text>

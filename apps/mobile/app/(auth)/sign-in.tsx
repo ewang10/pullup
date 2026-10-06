@@ -94,7 +94,7 @@ export default function SignInScreen() {
             <Text style={styles.backText}>Back</Text>
           </Pressable>
 
-          <Text style={styles.title}>Welcome back</Text>
+          <Text maxFontSizeMultiplier={1.5} style={styles.title}>Welcome back</Text>
           <Text style={styles.subtitle}>
             Sign in to your PullUp account
           </Text>

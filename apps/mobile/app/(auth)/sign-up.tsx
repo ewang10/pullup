@@ -110,7 +110,7 @@ export default function SignUpScreen() {
             <Text style={styles.backText}>Back</Text>
           </Pressable>
 
-          <Text style={styles.title}>Create account</Text>
+          <Text maxFontSizeMultiplier={1.5} style={styles.title}>Create account</Text>
           <Text style={styles.subtitle}>
             Get ride credit for local deals, or earn bonuses as a driver.
           </Text>

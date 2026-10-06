@@ -89,7 +89,7 @@ export default function DealDetailScreen() {
             if (err) {
               Alert.alert("Error", err);
             } else if (data) {
-              Alert.alert("Deal claimed", "Head to the venue to redeem.", [
+              Alert.alert("Deal claimed", `Get there within ${formatDuration(deal.hold_duration_minutes)}, then check in on the claim screen.`, [
                 {
                   text: "View claim",
                   onPress: () => router.replace(`/claim/${data.id}`),
@@ -117,7 +117,7 @@ export default function DealDetailScreen() {
   if (error || !deal) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.errorIcon}>!</Text>
+        <Text maxFontSizeMultiplier={1.5} style={styles.errorIcon}>!</Text>
         <Text style={styles.errorTitle}>Could not load deal</Text>
         <Text style={styles.errorMessage}>{error ?? "Deal not found"}</Text>
         <Pressable
@@ -172,7 +172,7 @@ export default function DealDetailScreen() {
             <Text style={styles.discountText}>{formatDiscount(deal)}</Text>
           </View>
 
-          <Text style={styles.title}>{deal.title}</Text>
+          <Text maxFontSizeMultiplier={1.5} style={styles.title}>{deal.title}</Text>
 
           <View style={styles.venueSection}>
             <Text style={styles.venueName}>{deal.venue.name}</Text>

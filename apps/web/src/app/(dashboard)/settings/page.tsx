@@ -10,7 +10,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { createSupabaseBrowserClient } from '@/lib/supabase-client';
-import { US_STATES, VENUE_CATEGORIES } from '@pullup/shared';
+import { DEMO_ACCOUNT_LOCKED_TEXT, US_STATES, VENUE_CATEGORIES, isDemoAccountEmail } from '@pullup/shared';
 import VenuePhotoCard from '@/components/VenuePhotoCard';
 
 interface VenueProfile {
@@ -38,11 +38,13 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [isDemo, setIsDemo] = useState(false);
 
   useEffect(() => {
     async function fetchVenue() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+      setIsDemo(isDemoAccountEmail(user.email));
 
       const { data: venue } = await supabase
         .from('venues')
@@ -269,11 +271,15 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
             <div>
               <p className="font-medium text-gray-900">Change password</p>
-              <p className="text-sm text-gray-600">Send a password reset link to your email</p>
+              <p className="text-sm text-gray-600">
+                {isDemo ? DEMO_ACCOUNT_LOCKED_TEXT : 'Send a password reset link to your email'}
+              </p>
             </div>
-            <button onClick={handlePasswordChange} className="btn-secondary text-sm">
-              Reset password
-            </button>
+            {!isDemo && (
+              <button type="button" onClick={handlePasswordChange} className="btn-secondary text-sm">
+                Reset password
+              </button>
+            )}
           </div>
 
           <div className="flex items-center justify-between p-4 bg-red-50 rounded-lg">

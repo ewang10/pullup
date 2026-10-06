@@ -294,6 +294,8 @@ async function main() {
       // Same pricing model as the deal form: min cost per claim, 50/20/30 split.
       ...calculateClaimCosts(Math.max(cost_per_claim, CLAIM_COST_MIN)),
       venue_id: venue.id,
+      // Look like the venue set these up before the 30 days of sample activity.
+      created_at: new Date(Date.now() - 45 * 86_400_000).toISOString(),
       hold_duration_minutes: 120,
       is_active: !inactive,
       requires_venue_receipt: Boolean(d.requires_venue_receipt),
@@ -322,6 +324,7 @@ async function main() {
     await rest(`driver_profiles?id=eq.${driverProfile.id}`, {
       method: 'PATCH',
       body: { is_verified: true, verification_status: 'approved', verification_note: null, payouts_on_hold: false,
+              rideshare_platform: 'uber', rideshare_driver_id: 'UBR-DEMO-2026',
               reviewed_at: new Date(now.getTime() - 29 * DAY).toISOString() },
     });
     await rest(`driver_review_events?driver_profile_id=eq.${driverProfile.id}`, { method: 'DELETE' });
