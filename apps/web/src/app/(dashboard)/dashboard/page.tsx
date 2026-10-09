@@ -13,7 +13,7 @@ import { createSupabaseBrowserClient } from '@/lib/supabase-client';
 import StatCard from '@/components/StatCard';
 import ClaimsTable, { type ClaimRow } from '@/components/ClaimsTable';
 import { CHART_COLORS, CHART_AXIS, chartTooltipStyle } from '@/lib/chart';
-import { costPerVisit, formatCurrency, isChargeableVisit, percentChange, type ClaimStatus } from '@/lib/claims';
+import { costPerVisit, formatCurrency, isChargeableVisit, localDayKey, percentChange, type ClaimStatus } from '@/lib/claims';
 import {
   ComposedChart,
   Area,
@@ -133,7 +133,7 @@ export default function DashboardPage() {
         const daily = new Map<string, ChartDataPoint>();
         for (let i = 29; i >= 0; i--) {
           const d = new Date(now - i * DAY_MS);
-          const key = d.toISOString().split('T')[0];
+          const key = localDayKey(d);
           daily.set(key, { date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), claims: 0, completed: 0 });
         }
 
@@ -151,7 +151,7 @@ export default function DashboardPage() {
               next.spentPrev += cost;
             }
           }
-          const point = daily.get(c.reserved_at.split('T')[0]);
+          const point = daily.get(localDayKey(new Date(c.reserved_at)));
           if (point) {
             point.claims += 1;
             if (isChargeableVisit(c)) point.completed += 1;

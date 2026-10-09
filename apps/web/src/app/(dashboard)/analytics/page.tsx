@@ -10,7 +10,7 @@
 import { useEffect, useState } from 'react';
 import { createSupabaseBrowserClient } from '@/lib/supabase-client';
 import { CHART_AXIS, CHART_COLORS, chartTooltipStyle } from '@/lib/chart';
-import { formatCurrency } from '@/lib/claims';
+import { formatCurrency, localDayKey } from '@/lib/claims';
 import {
   BarChart,
   Bar,
@@ -69,16 +69,22 @@ export default function AnalyticsPage() {
       const dealIds = dealRows.map((d) => d.id);
 
       const days = timeRange === '7d' ? 7 : timeRange === '30d' ? 30 : 90;
+      // Local midnight at the start of the first day shown, so the query and the chart cover the same days.
       const startDate = new Date();
-      startDate.setDate(startDate.getDate() - days);
+      startDate.setHours(0, 0, 0, 0);
+      startDate.setDate(startDate.getDate() - (days - 1));
 
       // Initialize daily breakdown map
-      const dailyMap = new Map<string, { visits: number; completed: number; revenue: number }>();
+      const dailyMap = new Map<string, { label: string; visits: number; completed: number; revenue: number }>();
       for (let i = 0; i < days; i++) {
-        const d = new Date();
-        d.setDate(d.getDate() - (days - 1 - i));
-        const key = d.toISOString().split('T')[0];
-        dailyMap.set(key, { visits: 0, completed: 0, revenue: 0 });
+        const d = new Date(startDate);
+        d.setDate(startDate.getDate() + i);
+        dailyMap.set(localDayKey(d), {
+          label: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          visits: 0,
+          completed: 0,
+          revenue: 0,
+        });
       }
 
       const dealClaimsMap = new Map<string, { claims: number; revenue: number }>();
@@ -93,8 +99,8 @@ export default function AnalyticsPage() {
           .order('reserved_at', { ascending: true });
 
         (claimsData || []).forEach((claim) => {
-          const day = claim.reserved_at.split('T')[0];
-          const existing = dailyMap.get(day) || { visits: 0, completed: 0, revenue: 0 };
+          const existing = dailyMap.get(localDayKey(new Date(claim.reserved_at)));
+          if (!existing) return;
           existing.visits += 1;
 
           // Visits closed without approved receipts aren't charged.
@@ -112,17 +118,12 @@ export default function AnalyticsPage() {
             dealStats.revenue += rev;
             dealClaimsMap.set(claim.deal_id, dealStats);
           }
-          dailyMap.set(day, existing);
         });
       }
 
       const daily: DailyData[] = [];
-      dailyMap.forEach((val, key) => {
-        daily.push({
-          date: new Date(key).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-          ...val,
-          revenue: parseFloat(val.revenue.toFixed(2)),
-        });
+      dailyMap.forEach(({ label, ...val }) => {
+        daily.push({ date: label, ...val, revenue: parseFloat(val.revenue.toFixed(2)) });
       });
       setDailyData(daily);
 

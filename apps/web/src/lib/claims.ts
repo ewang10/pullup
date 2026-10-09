@@ -69,7 +69,15 @@ export function formatCurrency(amount: number): string {
 }
 
 /** Percent change between two periods, or null when there is no baseline. */
+/** Below this, a percent change (e.g. 2 -> 68 visits = +3300%) says more about a thin baseline than about growth. */
+const MIN_BASELINE = 5;
+
+/** "YYYY-MM-DD" for a date in the viewer's time zone (charts group by local day). */
+export function localDayKey(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 export function percentChange(current: number, previous: number): number | null {
-  if (previous === 0) return null;
+  if (previous < MIN_BASELINE) return null;
   return ((current - previous) / previous) * 100;
 }
